@@ -6,6 +6,7 @@ import '../dashboard/dashboard_screen.dart';
 import '../entity/entity_detail_screen.dart';
 import '../entity/entity_edit_screen.dart';
 import '../entity/entity_list_screen.dart';
+import '../entity/relationship_graph_screen.dart';
 import '../search/search_screen.dart';
 
 /// The app-wide router. Override in tests to control the start location.
@@ -40,6 +41,11 @@ GoRouter buildAppRouter({String initialLocation = '/'}) {
         path: '/search',
         name: 'search',
         builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/graph',
+        name: 'graph',
+        builder: (context, state) => const RelationshipGraphScreen(),
       ),
       GoRoute(
         path: '/library/:type',

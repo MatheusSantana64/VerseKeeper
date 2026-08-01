@@ -11,6 +11,7 @@ class AppDrawer extends StatelessWidget {
       _topDestinations = [
     (location: '/', label: 'Dashboard', icon: Icons.home_outlined),
     (location: '/search', label: 'Search', icon: Icons.search),
+    (location: '/graph', label: 'Graph', icon: Icons.hub_outlined),
   ];
 
   @override
@@ -54,6 +55,7 @@ class AppDrawer extends StatelessWidget {
   int _selectedIndex(String location) {
     if (location == '/') return 0;
     if (location.startsWith('/search')) return 1;
+    if (location.startsWith('/graph')) return 2;
     for (var i = 0; i < primaryEntityTypes.length; i++) {
       if (location == '/library/${primaryEntityTypes[i].name}' ||
           location.startsWith('/library/${primaryEntityTypes[i].name}/')) {

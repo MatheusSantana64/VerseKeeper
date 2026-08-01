@@ -21,7 +21,17 @@ class EntityListScreen extends ConsumerWidget {
     final entities = ref.watch(entityListProvider(type));
 
     return Scaffold(
-      appBar: AppBar(title: Text(config.label)),
+      appBar: AppBar(
+        title: Text(config.label),
+        actions: [
+          if (type == EntityType.character)
+            IconButton(
+              tooltip: 'Relationship graph',
+              icon: const Icon(Icons.hub_outlined),
+              onPressed: () => context.go('/graph'),
+            ),
+        ],
+      ),
       drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/library/${type.name}/new'),
