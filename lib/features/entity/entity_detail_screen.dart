@@ -214,7 +214,7 @@ class _EntityDetailBody extends ConsumerWidget {
         const SizedBox(height: 8),
         Text('Relationships', style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
-        ..._relationshipTiles(ref, theme, json['relationships'] as List),
+        ..._relationshipTiles(context, ref, json['relationships'] as List),
       ],
       if (json['customFields'] is Map &&
           (json['customFields'] as Map).isNotEmpty) ...[
@@ -392,11 +392,12 @@ class _EntityDetailBody extends ConsumerWidget {
       const SizedBox(height: 8),
       Text('Appearances', style: theme.textTheme.titleSmall),
       const SizedBox(height: 8),
-      ..._appearanceTiles(ref, theme, appearances),
+      ..._appearanceTiles(context, ref, theme, appearances),
     ];
   }
 
   List<Widget> _appearanceTiles(
+    BuildContext context,
     WidgetRef ref,
     ThemeData theme,
     List<dynamic> appearances,
@@ -425,39 +426,34 @@ class _EntityDetailBody extends ConsumerWidget {
       final character =
           characterId is String ? charById[characterId] : null;
       final characterName = character == null
-          ? (characterId?.toString() ?? '?')
+          ? (characterId is String ? '(deleted)' : '?')
           : displayNameOf(character);
       final version = versionId is String ? versionById[versionId] : null;
-      final versionName = version == null ? null : displayNameOf(version);
-      final lines = [
-        characterName,
-        ?versionName,
+      final subtitleLines = [
+        if (version != null) displayNameOf(version),
         if (role is String && role.trim().isNotEmpty) role,
       ];
-      tiles.add(Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.theater_comedy_outlined,
-                size: 20, color: theme.colorScheme.outline),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SelectableText(
-                lines.join('\n'),
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),
-          ],
-        ),
+      tiles.add(ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(Icons.theater_comedy_outlined,
+            color: theme.colorScheme.outline),
+        title: Text(characterName),
+        subtitle: subtitleLines.isEmpty ? null : Text(subtitleLines.join('\n')),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: character != null
+            ? () => context.go('/library/character/${character.id}')
+            : version != null
+                ? () =>
+                    context.go('/library/characterVersion/${version.id}')
+                : null,
       ));
     }
     return tiles;
   }
 
   List<Widget> _relationshipTiles(
+    BuildContext context,
     WidgetRef ref,
-    ThemeData theme,
     List<dynamic> relationships,
   ) {
     final characters = ref.watch(entityListProvider(EntityType.character));
@@ -542,31 +538,26 @@ class _RelationshipDetailTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final target = targetId == null ? null : byId[targetId];
-    final targetName =
-        target == null ? (targetId ?? '?') : displayNameOf(target);
+    final targetName = target == null
+        ? (targetId == null ? '?' : '(deleted)')
+        : displayNameOf(target);
     final typeLabel = typeName ?? '';
     final effectiveType =
         typeLabel.isEmpty ? 'relationship' : prettyLabel(typeLabel);
-    final lines = [
-      '$effectiveType · $targetName',
+    final subtitleLines = [
+      effectiveType,
       if (customLabel != null && customLabel!.trim().isNotEmpty) customLabel!,
       if (notes != null && notes!.trim().isNotEmpty) notes!,
     ];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.people_outline, size: 20, color: theme.colorScheme.outline),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SelectableText(
-              lines.join('\n'),
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.people_outline, color: theme.colorScheme.outline),
+      title: Text(targetName),
+      subtitle: subtitleLines.isEmpty ? null : Text(subtitleLines.join('\n')),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: target == null
+          ? null
+          : () => context.go('/library/character/${target.id}'),
     );
   }
 }

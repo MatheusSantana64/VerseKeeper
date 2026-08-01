@@ -61,7 +61,8 @@ void main() {
 
     expect(find.text('Birthplace'), findsOneWidget);
     expect(find.text('Eryndor'), findsOneWidget);
-    expect(find.textContaining('Mentor · Rin'), findsOneWidget);
+    expect(find.text('Rin'), findsOneWidget);
+    expect(find.text('Mentor'), findsOneWidget);
 
     await unmountTestApp(tester);
   });
