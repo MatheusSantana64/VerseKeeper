@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/entity_type.dart';
 import '../../core/models/relationship.dart';
 import '../../core/models/stored_entity.dart';
+import '../../core/models/story_appearance.dart';
 import '../app_shell/app_drawer.dart';
 import 'entity_actions.dart';
 import 'entity_display.dart';
@@ -114,6 +115,7 @@ class _EntityDetailBody extends ConsumerWidget {
     final theme = Theme.of(context);
     final json = entity.toJson();
     final isCharacter = entity.entityType == EntityType.character;
+    final isStory = entity.entityType == EntityType.story;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -146,7 +148,7 @@ class _EntityDetailBody extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
         for (final entry in json.entries)
-          if (_isFieldVisible(entry.key, entry.value, isCharacter))
+          if (_isFieldVisible(entry.key, entry.value, isCharacter, isStory))
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -166,6 +168,7 @@ class _EntityDetailBody extends ConsumerWidget {
               ),
             ),
         if (isCharacter) ..._characterSections(context, ref, theme, json),
+        if (isStory) ..._storySections(context, ref, theme, json),
         const SizedBox(height: 16),
         Text(
           'Created ${formatValue(json['createdAt'])}\n'
@@ -177,11 +180,17 @@ class _EntityDetailBody extends ConsumerWidget {
     );
   }
 
-  bool _isFieldVisible(String key, Object? value, bool isCharacter) {
+  bool _isFieldVisible(
+    String key,
+    Object? value,
+    bool isCharacter,
+    bool isStory,
+  ) {
     if (_skipKeys.contains(key)) return false;
     if (isCharacter && (key == 'customFields' || key == 'relationships')) {
       return false;
     }
+    if (isStory && key == 'appearances') return false;
     return formatValue(value).isNotEmpty;
   }
 
@@ -206,7 +215,124 @@ class _EntityDetailBody extends ConsumerWidget {
         const SizedBox(height: 8),
         ..._customFieldTiles(ref, theme, json['customFields'] as Map),
       ],
+      ..._characterStorySection(context, ref, theme),
     ];
+  }
+
+  List<Widget> _characterStorySection(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+  ) {
+    final stories = ref.watch(entityListProvider(EntityType.story));
+    final mine = [
+      for (final story in stories.value ?? const <StoredEntity>[])
+        if (_storyHasCharacter(story, entity.id)) story,
+    ];
+    if (mine.isEmpty) return const [];
+    return [
+      const SizedBox(height: 8),
+      Text('Stories', style: theme.textTheme.titleSmall),
+      const SizedBox(height: 4),
+      for (final story in mine)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(configOf(EntityType.story).icon),
+          title: Text(displayNameOf(story)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.go('/library/story/${story.id}'),
+        ),
+    ];
+  }
+
+  bool _storyHasCharacter(StoredEntity story, String characterId) {
+    final appearances = story.toJson()['appearances'];
+    if (appearances is! List) return false;
+    for (final appearance in appearances) {
+      if (appearance is StoryAppearance &&
+          appearance.characterId == characterId) {
+        return true;
+      }
+      if (appearance is Map && appearance['characterId'] == characterId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<Widget> _storySections(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    Map<String, dynamic> json,
+  ) {
+    final appearances = json['appearances'];
+    if (appearances is! List || appearances.isEmpty) return const [];
+    return [
+      const SizedBox(height: 8),
+      Text('Appearances', style: theme.textTheme.titleSmall),
+      const SizedBox(height: 8),
+      ..._appearanceTiles(ref, theme, appearances),
+    ];
+  }
+
+  List<Widget> _appearanceTiles(
+    WidgetRef ref,
+    ThemeData theme,
+    List<dynamic> appearances,
+  ) {
+    final characters = ref.watch(entityListProvider(EntityType.character));
+    final charById = {
+      for (final character in characters.value ?? const <StoredEntity>[])
+        character.id: character,
+    };
+    final versions = ref.watch(entityListProvider(EntityType.characterVersion));
+    final versionById = {
+      for (final version in versions.value ?? const <StoredEntity>[])
+        version.id: version,
+    };
+    final tiles = <Widget>[];
+    for (final appearance in appearances) {
+      final characterId = appearance is StoryAppearance
+          ? appearance.characterId
+          : (appearance is Map ? appearance['characterId'] : null);
+      final versionId = appearance is StoryAppearance
+          ? appearance.versionId
+          : (appearance is Map ? appearance['versionId'] : null);
+      final role = appearance is StoryAppearance
+          ? appearance.role
+          : (appearance is Map ? appearance['role'] : null);
+      final character =
+          characterId is String ? charById[characterId] : null;
+      final characterName = character == null
+          ? (characterId?.toString() ?? '?')
+          : displayNameOf(character);
+      final version = versionId is String ? versionById[versionId] : null;
+      final versionName = version == null ? null : displayNameOf(version);
+      final lines = [
+        characterName,
+        ?versionName,
+        if (role is String && role.trim().isNotEmpty) role,
+      ];
+      tiles.add(Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.theater_comedy_outlined,
+                size: 20, color: theme.colorScheme.outline),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SelectableText(
+                lines.join('\n'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ));
+    }
+    return tiles;
   }
 
   List<Widget> _relationshipTiles(

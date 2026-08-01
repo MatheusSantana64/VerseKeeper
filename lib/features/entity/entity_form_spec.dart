@@ -22,6 +22,10 @@ enum FormFieldKind {
 
   /// Nested list of [Relationship]s to other entities.
   relationshipList,
+
+  /// Nested list of [StoryAppearance]s (story casting: character + optional
+  /// version + role).
+  storyAppearanceList,
 }
 
 /// Defines one editable field of an entity type.
@@ -108,6 +112,7 @@ const Map<EntityType, List<FormFieldSpec>> entityFormSpecs = {
     FormFieldSpec(key: 'genres', label: 'Genres', kind: FormFieldKind.tags),
     FormFieldSpec(key: 'status', label: 'Status', kind: FormFieldKind.text),
     FormFieldSpec(key: 'tags', label: 'Tags', kind: FormFieldKind.tags),
+    FormFieldSpec(key: 'appearances', label: 'Appearances', kind: FormFieldKind.storyAppearanceList),
   ],
   EntityType.universe: [
     FormFieldSpec(key: 'name', label: 'Name', kind: FormFieldKind.text, required: true),

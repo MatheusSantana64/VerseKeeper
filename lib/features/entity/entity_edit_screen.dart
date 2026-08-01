@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/entity_type.dart';
 import '../../core/models/relationship.dart';
 import '../../core/models/stored_entity.dart';
+import '../../core/models/story_appearance.dart';
 import '../../core/utils/id_generator.dart';
 import '../app_shell/app_drawer.dart';
 import 'entity_actions.dart';
@@ -52,6 +53,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
         case FormFieldKind.entityPicker:
           _values[spec.key] = null;
         case FormFieldKind.relationshipList:
+        case FormFieldKind.storyAppearanceList:
           _values[spec.key] = const <Map<String, dynamic>>[];
         default:
           _controllers[spec.key] = TextEditingController();
@@ -91,6 +93,14 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
           _values[spec.key] = raw is List
               ? raw.map((r) => (r as Relationship).toJson()).toList()
               : const <Map<String, dynamic>>[];
+        case FormFieldKind.storyAppearanceList:
+          _values[spec.key] = raw is List
+              ? raw.map((a) {
+                  if (a is StoryAppearance) return a.toJson();
+                  if (a is Map) return Map<String, dynamic>.from(a);
+                  return const <String, dynamic>{};
+                }).toList()
+              : const <Map<String, dynamic>>[];
       }
     }
   }
@@ -111,6 +121,9 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
       case FormFieldKind.entityPickerMulti:
         return _values[spec.key] as List<String>? ?? const <String>[];
       case FormFieldKind.relationshipList:
+        return _values[spec.key] as List<Map<String, dynamic>>? ??
+            const <Map<String, dynamic>>[];
+      case FormFieldKind.storyAppearanceList:
         return _values[spec.key] as List<Map<String, dynamic>>? ??
             const <Map<String, dynamic>>[];
     }
@@ -300,6 +313,16 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
             excludeId: widget.id,
             onChanged: (relationships) =>
                 setState(() => _values[spec.key] = List.of(relationships)),
+          ),
+        );
+      case FormFieldKind.storyAppearanceList:
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _StoryAppearanceListEditor(
+            appearances:
+                _values[spec.key] as List<Map<String, dynamic>>? ?? const [],
+            onChanged: (appearances) =>
+                setState(() => _values[spec.key] = List.of(appearances)),
           ),
         );
     }
@@ -794,6 +817,244 @@ class _RelationshipTile extends StatelessWidget {
               controller: draft.notesController,
               decoration: const InputDecoration(labelText: 'Notes'),
               maxLines: 2,
+              onChanged: (_) => onChanged(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Draft state for one story-appearance row in the story form.
+class _AppearanceDraft {
+  _AppearanceDraft({this.characterId, this.versionId, String? role})
+      : roleController = TextEditingController(text: role);
+
+  String? characterId;
+  String? versionId;
+  final TextEditingController roleController;
+
+  Map<String, dynamic> toJson() => {
+        'characterId': characterId,
+        if (versionId != null) 'versionId': versionId,
+        if (roleController.text.trim().isNotEmpty)
+          'role': roleController.text.trim(),
+      };
+
+  void dispose() {
+    roleController.dispose();
+  }
+}
+
+/// Editable list of [StoryAppearance]s (story casting) for the story form.
+class _StoryAppearanceListEditor extends ConsumerStatefulWidget {
+  const _StoryAppearanceListEditor({
+    required this.appearances,
+    required this.onChanged,
+  });
+
+  final List<Map<String, dynamic>> appearances;
+  final ValueChanged<List<Map<String, dynamic>>> onChanged;
+
+  @override
+  ConsumerState<_StoryAppearanceListEditor> createState() =>
+      _StoryAppearanceListEditorState();
+}
+
+class _StoryAppearanceListEditorState
+    extends ConsumerState<_StoryAppearanceListEditor> {
+  late final List<_AppearanceDraft> _drafts;
+
+  @override
+  void initState() {
+    super.initState();
+    _drafts = widget.appearances
+        .map((json) => _AppearanceDraft(
+              characterId: json['characterId'] as String?,
+              versionId: json['versionId'] as String?,
+              role: json['role'] as String?,
+            ))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final draft in _drafts) {
+      draft.dispose();
+    }
+    super.dispose();
+  }
+
+  void _sync() {
+    widget.onChanged([
+      for (final draft in _drafts)
+        if (draft.characterId != null) draft.toJson(),
+    ]);
+  }
+
+  void _add() {
+    setState(() => _drafts.add(_AppearanceDraft()));
+    _sync();
+  }
+
+  void _remove(int index) {
+    _drafts.removeAt(index).dispose();
+    setState(() {});
+    _sync();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final characters = ref.watch(entityListProvider(EntityType.character));
+    final versions = ref.watch(entityListProvider(EntityType.characterVersion));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Appearances',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        characters.when(
+          data: (candidates) {
+            if (_drafts.isEmpty && candidates.isEmpty) {
+              return Text(
+                'No characters yet',
+                style: theme.textTheme.bodySmall,
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < _drafts.length; index++)
+                  _AppearanceTile(
+                    draft: _drafts[index],
+                    characters: candidates,
+                    versions: versions.value ?? const <StoredEntity>[],
+                    onChanged: () => setState(_sync),
+                    onRemove: () => _remove(index),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: _add,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add appearance'),
+                ),
+              ],
+            );
+          },
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) => Text('Could not load characters: $error'),
+        ),
+      ],
+    );
+  }
+}
+
+/// One editable story-appearance row.
+class _AppearanceTile extends StatelessWidget {
+  const _AppearanceTile({
+    required this.draft,
+    required this.characters,
+    required this.versions,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  final _AppearanceDraft draft;
+  final List<StoredEntity> characters;
+  final List<StoredEntity> versions;
+  final VoidCallback onChanged;
+  final VoidCallback onRemove;
+
+  List<StoredEntity> _versionsFor(String? characterId) => [
+        for (final version in versions)
+          if (version.toJson()['characterId'] == characterId) version,
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedCharacter =
+        characters.any((c) => c.id == draft.characterId) ? draft.characterId : '';
+    final characterVersions = _versionsFor(draft.characterId);
+    final selectedVersion =
+        characterVersions.any((v) => v.id == draft.versionId)
+            ? draft.versionId
+            : '';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: selectedCharacter,
+                    decoration:
+                        const InputDecoration(labelText: 'Character'),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: '',
+                        child: Text('(Choose character)'),
+                      ),
+                      for (final character in characters)
+                        DropdownMenuItem<String>(
+                          value: character.id,
+                          child: Text(
+                            displayNameOf(character),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      draft.characterId =
+                          (value == null || value.isEmpty) ? null : value;
+                      draft.versionId = null;
+                      onChanged();
+                    },
+                  ),
+                ),
+                IconButton(
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Remove appearance',
+                ),
+              ],
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: selectedVersion,
+              decoration: const InputDecoration(labelText: 'Version'),
+              items: [
+                const DropdownMenuItem<String>(
+                  value: '',
+                  child: Text('(Default)'),
+                ),
+                for (final version in characterVersions)
+                  DropdownMenuItem<String>(
+                    value: version.id,
+                    child: Text(
+                      displayNameOf(version),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (value) {
+                draft.versionId =
+                    (value == null || value.isEmpty) ? null : value;
+                onChanged();
+              },
+            ),
+            TextField(
+              controller: draft.roleController,
+              decoration: const InputDecoration(labelText: 'Role'),
               onChanged: (_) => onChanged(),
             ),
           ],
