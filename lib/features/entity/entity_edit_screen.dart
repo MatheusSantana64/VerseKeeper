@@ -433,7 +433,33 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
     return defs.when(
       data: (definitions) {
         _syncCustomControllers(definitions);
-        if (definitions.isEmpty) return const <Widget>[];
+        if (definitions.isEmpty) {
+          final theme = Theme.of(context);
+          return [
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Add custom fields to capture structured '
+                      'character data.',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.outline),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.go(
+                      '/library/${EntityType.fieldDefinition.name}',
+                    ),
+                    icon: const Icon(Icons.playlist_add, size: 18),
+                    label: const Text('Manage'),
+                  ),
+                ],
+              ),
+            ),
+          ];
+        }
         final theme = Theme.of(context);
         return [
           Padding(
