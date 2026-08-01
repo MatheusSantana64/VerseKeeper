@@ -44,6 +44,40 @@ void main() {
     await unmountTestApp(tester);
   });
 
+  testWidgets('search groups results by type with a count', (tester) async {
+    final emberHaru = Character(
+      id: 'char-ember',
+      name: 'Haru',
+      notes: 'Carries the ember blade.',
+      createdAt: DateTime.utc(2024, 1, 1),
+      updatedAt: DateTime.utc(2024, 1, 2),
+    );
+    final emberStory = Story(
+      id: 'story-ember',
+      title: 'Ember Crown',
+      summary: 'A tale of ember and ash.',
+      createdAt: DateTime.utc(2024, 2, 1),
+      updatedAt: DateTime.utc(2024, 2, 2),
+    );
+    final database = await seededDatabase([emberHaru, emberStory]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/search'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'ember');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 results'), findsOneWidget);
+    expect(find.text('Characters'), findsOneWidget);
+    expect(find.text('Stories'), findsOneWidget);
+    expect(find.text('Haru'), findsOneWidget);
+    expect(find.text('Ember Crown'), findsOneWidget);
+
+    await unmountTestApp(tester);
+  });
+
   testWidgets('search shows a hint before a query is typed', (tester) async {
     final database = await seededDatabase([haru]);
     addTearDown(database.close);

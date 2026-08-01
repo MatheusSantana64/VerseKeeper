@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models/entity_type.dart';
 import '../../core/models/stored_entity.dart';
 import '../../data/repositories/repository_providers.dart';
 import '../app_shell/app_drawer.dart';
@@ -66,12 +67,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 : results.when(
                     data: (list) => list.isEmpty
                         ? const _Hint(text: 'No matches found.')
-                        : ListView.builder(
-                            itemCount: list.length,
-                            itemBuilder: (context, index) => _ResultTile(
-                              entity: list[index],
-                            ),
-                          ),
+                        : _ResultsList(results: list),
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
                     error: (error, _) =>
@@ -89,6 +85,84 @@ final searchResultsProvider = StreamProvider.autoDispose
     .family<List<StoredEntity>, String>((ref, query) {
   return ref.watch(searchRepositoryProvider).watchSearch(query);
 });
+
+class _ResultsList extends StatelessWidget {
+  const _ResultsList({required this.results});
+
+  final List<StoredEntity> results;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final byType = <EntityType, List<StoredEntity>>{};
+    for (final entity in results) {
+      byType.putIfAbsent(entity.entityType, () => []).add(entity);
+    }
+    final groups = byType.entries.toList()
+      ..sort((a, b) => a.key.index.compareTo(b.key.index));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            '${results.length} ${results.length == 1 ? 'result' : 'results'}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: groups.fold<int>(0, (sum, g) => sum + g.value.length + 1),
+            itemBuilder: (context, index) {
+              for (final group in groups) {
+                final header = 1;
+                final sectionLength = group.value.length + header;
+                if (index < sectionLength) {
+                  if (index == 0) {
+                    return _TypeHeader(type: group.key);
+                  }
+                  return _ResultTile(entity: group.value[index - 1]);
+                }
+                index -= sectionLength;
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TypeHeader extends StatelessWidget {
+  const _TypeHeader({required this.type});
+
+  final EntityType type;
+
+  @override
+  Widget build(BuildContext context) {
+    final config = configOf(type);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Row(
+        children: [
+          Icon(config.icon, size: 18, color: theme.colorScheme.outline),
+          const SizedBox(width: 8),
+          Text(
+            config.label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _ResultTile extends StatelessWidget {
   const _ResultTile({required this.entity});

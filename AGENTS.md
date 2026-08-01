@@ -9,15 +9,17 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 
 ## UI (features + routing)
 
-- `lib/features/router/app_router.dart` builds the go_router table (`goRouterProvider`): `/` dashboard, `/search`, `/library/:type`, `/library/:type/:id`. Screens use `AppDrawer` (`lib/features/app_shell/app_drawer.dart`) for navigation.
+- `lib/features/router/app_router.dart` builds the go_router table (`goRouterProvider`): `/` dashboard, `/search`, `/graph` (relationship graph), `/library/:type`, `/library/:type/:id`. Screens use `AppDrawer` (`lib/features/app_shell/app_drawer.dart`) for navigation.
 - Screens must not depend on `lib/data/local` (clean arch: features → repositories only). `lib/features/entity/entity_library_providers.dart` provides generic `StreamProvider.family`/`FutureProvider.family` bridges (`entityListProvider`, `entityCountProvider`, `entityDetailProvider`) that switch over the typed repo providers; `entity_type_config.dart` maps `EntityType` → label/icon; `entity_display.dart` derives display names/previews from `toJson()` (no codec dependency).
 - New entity types need: a config entry in `entity_type_config.dart`, plus (if promoted in the drawer/dashboard) a slot in `primaryEntityTypes`.
+- The relationship graph (`relationship_graph_screen.dart`, route `/graph`) renders all characters as a circle; edges are owned relationships plus derived inverses (see `RelationshipType.inverse`). Node taps navigate to the character detail.
 
 ## Editing (Phase 5)
 
-- Create/edit uses a spec-driven generic form. `lib/features/entity/entity_form_spec.dart` declares the editable fields per type (`FormFieldKind`: text/multiline/tags/number/entityPicker/entityPickerMulti — list-valued refs like `Character.universeIds` must use `entityPickerMulti`, never `entityPicker`). `entity_edit_screen.dart` builds a model from form values + generated `id`/timestamps via `entityFromJson` in `entity_actions.dart` (JSON→model and save/delete switches over the typed repos — mirrors the `_watchAll` switch pattern). Nested structures (relationships, story appearances, images, version management) are intentionally not editable yet.
+- Create/edit uses a spec-driven generic form. `lib/features/entity/entity_form_spec.dart` declares the editable fields per type (`FormFieldKind`: text/multiline/tags/number/entityPicker/entityPickerMulti/relationshipList/storyAppearanceList — list-valued refs like `Character.universeIds` must use `entityPickerMulti`, never `entityPicker`). `entity_edit_screen.dart` builds a model from form values + generated `id`/timestamps via `entityFromJson` in `entity_actions.dart` (JSON→model and save/delete switches over the typed repos — mirrors the `_watchAll` switch pattern). Nested editors implemented: character relationships (`relationshipList`) and story casting (`storyAppearanceList`, character + optional version + role). Images remain intentionally not editable (no image store yet).
 - `fromJson` tolerates missing keys (json_serializable emits defaults), so create JSON only needs `id`/`createdAt`/`updatedAt` + the required name/title field + the edited values.
-- Routes: `/library/:type/new` (create, declared before `:id` so `new` never matches an id) and `/library/:type/:id/edit`.
+- Routes: `/library/:type/new` (create, declared before `:id` so `new` never matches an id) and `/library/:type/:id/edit`. Create forms accept a `?key=value` query string via `EntityEditScreen.initialValues` (e.g. `/library/characterVersion/new?characterId=...`) to pre-fill picks.
+- Character detail manages versions (list + "New version" with the character pre-selected) and shows a resolved snapshot on the version detail via `Character.resolve`. `deleteEntity` for `fieldDefinition` also strips the definition's key from every character's `customFields` (`entity_actions.dart`).
 - Widget tests that fill a long form: set `tester.view.physicalSize` to a tall viewport — `scrollUntilVisible` is unreliable here because every `TextField` contributes a `Scrollable` (multi-match).
 
 ## Local storage (drift document-store)
@@ -26,6 +28,8 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 - Each entity type has a codec in `lib/data/local/entity_codecs.dart` (registered in the `entityCodecs` map) that provides fromJson/name/searchText. New entity types need: enum value in `entity_type.dart`, a model implementing `StoredEntity`, a codec + registry entry.
 - Search uses a raw-SQL FTS5 virtual table (`entity_search`, created in `MigrationStrategy.onCreate`; drift has no FTS5 DSL). DAO mutations must keep the FTS row in sync.
 - Models implement `StoredEntity` (`id`, `createdAt`, `updatedAt`, `entityType`, `toJson`); each also declares `EntityType get entityType` and needs `const X._();` for freezed.
+- **Nested models serialize as raw freezed objects, not maps.** `Character.toJson()` emits `List<Relationship>` (json_serializable does not recurse into freezed `toJson`). Detail renderers must handle both `Relationship`/`StoryAppearance` objects and `Map`s; the edit form normalizes to maps.
+- The DAO exposes `watchAll` (stream), `getAll` (one-shot snapshot), `getById`, `count`, `search`/`watchSearch`. Prefer `getAll` over `watchAll().first` inside handlers — drift streams schedule `Timer.run`s that don't complete in widget-test fake-async zones.
 
 ## Commands
 
