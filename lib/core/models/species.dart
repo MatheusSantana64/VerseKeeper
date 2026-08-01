@@ -1,11 +1,16 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'entity_type.dart';
+import 'stored_entity.dart';
+
 part 'species.freezed.dart';
 part 'species.g.dart';
 
 /// A species or race within a universe.
 @freezed
-abstract class Species with _$Species {
+abstract class Species with _$Species implements StoredEntity {
+  const Species._();
+
   const factory Species({
     required String id,
     required String name,
@@ -20,4 +25,7 @@ abstract class Species with _$Species {
   }) = _Species;
 
   factory Species.fromJson(Map<String, dynamic> json) => _$SpeciesFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.species;
 }

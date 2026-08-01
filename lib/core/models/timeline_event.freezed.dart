@@ -221,8 +221,8 @@ return $default(_that.id,_that.title,_that.universeId,_that.dateLabel,_that.sort
 /// @nodoc
 @JsonSerializable()
 
-class _TimelineEvent implements TimelineEvent {
-  const _TimelineEvent({required this.id, required this.title, this.universeId, this.dateLabel, this.sortOrder = 0, this.description, this.notes, final  List<String> tags = const <String>[], final  List<String> involvedCharacterIds = const <String>[], final  List<String> involvedOrganizationIds = const <String>[], final  List<String> involvedLocationIds = const <String>[], final  List<String> relatedEventIds = const <String>[], required this.createdAt, required this.updatedAt}): _tags = tags,_involvedCharacterIds = involvedCharacterIds,_involvedOrganizationIds = involvedOrganizationIds,_involvedLocationIds = involvedLocationIds,_relatedEventIds = relatedEventIds;
+class _TimelineEvent extends TimelineEvent {
+  const _TimelineEvent({required this.id, required this.title, this.universeId, this.dateLabel, this.sortOrder = 0, this.description, this.notes, final  List<String> tags = const <String>[], final  List<String> involvedCharacterIds = const <String>[], final  List<String> involvedOrganizationIds = const <String>[], final  List<String> involvedLocationIds = const <String>[], final  List<String> relatedEventIds = const <String>[], required this.createdAt, required this.updatedAt}): _tags = tags,_involvedCharacterIds = involvedCharacterIds,_involvedOrganizationIds = involvedOrganizationIds,_involvedLocationIds = involvedLocationIds,_relatedEventIds = relatedEventIds,super._();
   factory _TimelineEvent.fromJson(Map<String, dynamic> json) => _$TimelineEventFromJson(json);
 
 @override final  String id;

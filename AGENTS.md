@@ -1,6 +1,13 @@
 # AGENTS.md
 
-VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with reusable characters. Clean architecture: `lib/core` (pure Dart: models, encryption, utils), `lib/features` (Riverpod UI), `lib/shared` (theme). The `lib/data` layer (local/remote/repositories/sync) is **planned but does not exist yet** — do not assume it exists. Planned stack: drift (local SQLite), Firestore + Storage (sync backend), go_router (declared in deps but not yet wired).
+VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with reusable characters. Clean architecture: `lib/core` (pure Dart: models, encryption, utils), `lib/data/local` (drift DB + DAOs), `lib/features` (Riverpod UI), `lib/shared` (theme). `lib/data/remote` + `lib/data/repositories` + `lib/data/sync` are **planned but do not exist yet** — do not assume them. Planned stack: drift (local SQLite, exists), Firestore + Storage (sync backend), go_router (declared in deps but not yet wired).
+
+## Local storage (drift document-store)
+
+- One `entities` table holds every entity as a JSON blob (`data`) plus denormalized `name`, `type`, timestamps, and a `deleted` tombstone. Nested structures (relationships, story appearances, images) live inside the JSON — do not add per-entity or join tables.
+- Each entity type has a codec in `lib/data/local/entity_codecs.dart` (registered in the `entityCodecs` map) that provides fromJson/name/searchText. New entity types need: enum value in `entity_type.dart`, a model implementing `StoredEntity`, a codec + registry entry.
+- Search uses a raw-SQL FTS5 virtual table (`entity_search`, created in `MigrationStrategy.onCreate`; drift has no FTS5 DSL). DAO mutations must keep the FTS row in sync.
+- Models implement `StoredEntity` (`id`, `createdAt`, `updatedAt`, `entityType`, `toJson`); each also declares `EntityType get entityType` and needs `const X._();` for freezed.
 
 ## Commands
 
@@ -13,12 +20,12 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 
 - All models are `@freezed` + `json_serializable` with `@Default(...)` list fields (never bare nullable-free fields without defaults).
 - **json_serializable fails with `InvalidType` unless a nested model type is imported directly in the file that uses it.** Dart has no transitive imports: `character.dart` must import `relationship.dart` even though `character_version.dart` already does. When a generator run starts failing on a model, check direct imports first.
-- New entity types: add an enum value in `lib/core/models/entity_type.dart` (`collectionName` values are immutable once deployed) and register a model.
+- New entity types: add an enum value in `lib/core/models/entity_type.dart` (`collectionName` values are immutable once deployed), make the model implement `StoredEntity`, and add a codec + registry entry in `lib/data/local/entity_codecs.dart`.
 - Codegen deps (`build_runner`, `freezed`, `json_serializable`, `drift_dev`) currently live in `dependencies` instead of `dev_dependencies` — known inconsistency, not worth "fixing" casually.
 
 ## Architecture decisions (do not reverse silently)
 
-- **Encryption is at the sync boundary, not at rest.** The local DB will hold plaintext (enables FTS5 search); sensitive fields are AES-256-GCM encrypted only before upload. UI/repos never talk to Firebase directly — repositories mediate.
+- **Encryption is at the sync boundary, not at rest.** The local DB holds plaintext (enables FTS5 search); sensitive fields are AES-256-GCM encrypted only before upload. UI/repos never talk to Firebase directly — repositories mediate.
 - Master key lives in `flutter_secure_storage` (Android Keystore / Windows DPAPI). Recovery codes start with `VK-` (base32 + FNV-1a checksum). See `lib/core/encryption/`.
 - **Character versioning = inherit + override.** A version stores only differing fields; `null`/empty = inherit from the base. `Character.resolve(CharacterVersion)` produces the merged snapshot.
 - **Relationships are directional and stored once** on the owning character; the reverse edge is derived via `RelationshipType.inverse` — never mirror-duplicate them.
@@ -34,3 +41,4 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 - `test/support/fakes.dart` provides `InMemoryKeyStorage`; widget tests must override `keyStorageProvider` with it (real secure storage throws `MissingPluginException` in tests).
 - Widget tests pump `VerseKeeperApp` inside `ProviderScope` with overrides — Firebase is **not** initialized in tests, so nothing under test may require it.
 - Encryption/base32/model tests are pure Dart; run anywhere without platform setup.
+- DB tests use `AppDatabase.forTesting()` (in-memory). `package:sqlite3` v3 bundles the native library via Dart native assets, so no extra setup is needed — but the app's `databaseProvider` must be overridden in any widget test that touches the DB.

@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'entity_type.dart';
 import 'relationship.dart';
+import 'stored_entity.dart';
 
 part 'character_version.freezed.dart';
 part 'character_version.g.dart';
@@ -13,7 +15,7 @@ part 'character_version.g.dart';
 /// field means "use the base character's value". Only fields that actually
 /// differ for this incarnation should be populated.
 @freezed
-abstract class CharacterVersion with _$CharacterVersion {
+abstract class CharacterVersion with _$CharacterVersion implements StoredEntity {
   const CharacterVersion._();
 
   const factory CharacterVersion({
@@ -65,4 +67,7 @@ abstract class CharacterVersion with _$CharacterVersion {
 
   factory CharacterVersion.fromJson(Map<String, dynamic> json) =>
       _$CharacterVersionFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.characterVersion;
 }

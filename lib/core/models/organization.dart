@@ -1,11 +1,16 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'entity_type.dart';
+import 'stored_entity.dart';
+
 part 'organization.freezed.dart';
 part 'organization.g.dart';
 
 /// An organization, faction or group within a universe.
 @freezed
-abstract class Organization with _$Organization {
+abstract class Organization with _$Organization implements StoredEntity {
+  const Organization._();
+
   const factory Organization({
     required String id,
     required String name,
@@ -28,4 +33,7 @@ abstract class Organization with _$Organization {
 
   factory Organization.fromJson(Map<String, dynamic> json) =>
       _$OrganizationFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.organization;
 }

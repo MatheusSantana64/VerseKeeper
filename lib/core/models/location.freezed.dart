@@ -219,8 +219,8 @@ return $default(_that.id,_that.name,_that.universeId,_that.type,_that.descriptio
 /// @nodoc
 @JsonSerializable()
 
-class _Location implements Location {
-  const _Location({required this.id, required this.name, this.universeId, this.type, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], this.parentLocationId, required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags;
+class _Location extends Location {
+  const _Location({required this.id, required this.name, this.universeId, this.type, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], this.parentLocationId, required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,super._();
   factory _Location.fromJson(Map<String, dynamic> json) => _$LocationFromJson(json);
 
 @override final  String id;

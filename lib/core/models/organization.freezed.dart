@@ -221,8 +221,8 @@ return $default(_that.id,_that.name,_that.universeId,_that.description,_that.not
 /// @nodoc
 @JsonSerializable()
 
-class _Organization implements Organization {
-  const _Organization({required this.id, required this.name, this.universeId, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], final  List<String> memberCharacterIds = const <String>[], final  List<String> locationIds = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,_memberCharacterIds = memberCharacterIds,_locationIds = locationIds;
+class _Organization extends Organization {
+  const _Organization({required this.id, required this.name, this.universeId, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], final  List<String> memberCharacterIds = const <String>[], final  List<String> locationIds = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,_memberCharacterIds = memberCharacterIds,_locationIds = locationIds,super._();
   factory _Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
 
 @override final  String id;

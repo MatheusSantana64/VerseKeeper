@@ -223,8 +223,8 @@ return $default(_that.id,_that.title,_that.universeId,_that.summary,_that.notes,
 /// @nodoc
 @JsonSerializable()
 
-class _Story implements Story {
-  const _Story({required this.id, required this.title, this.universeId, this.summary, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], final  List<String> genres = const <String>[], this.status, final  List<StoryAppearance> appearances = const <StoryAppearance>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,_genres = genres,_appearances = appearances;
+class _Story extends Story {
+  const _Story({required this.id, required this.title, this.universeId, this.summary, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], final  List<String> genres = const <String>[], this.status, final  List<StoryAppearance> appearances = const <StoryAppearance>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,_genres = genres,_appearances = appearances,super._();
   factory _Story.fromJson(Map<String, dynamic> json) => _$StoryFromJson(json);
 
 @override final  String id;

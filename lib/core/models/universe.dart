@@ -1,5 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'entity_type.dart';
+import 'stored_entity.dart';
+
 part 'universe.freezed.dart';
 part 'universe.g.dart';
 
@@ -10,7 +13,9 @@ part 'universe.g.dart';
 /// Characters are the exception: they are global and can appear in many
 /// universes through their versions.
 @freezed
-abstract class Universe with _$Universe {
+abstract class Universe with _$Universe implements StoredEntity {
+  const Universe._();
+
   const factory Universe({
     required String id,
     required String name,
@@ -36,4 +41,7 @@ abstract class Universe with _$Universe {
 
   factory Universe.fromJson(Map<String, dynamic> json) =>
       _$UniverseFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.universe;
 }

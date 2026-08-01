@@ -1,5 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'entity_type.dart';
+import 'stored_entity.dart';
+
 part 'timeline_event.freezed.dart';
 part 'timeline_event.g.dart';
 
@@ -9,7 +12,9 @@ part 'timeline_event.g.dart';
 /// free-form label (e.g. "Year 117, 3rd Moon") plus a numeric [sortOrder] for
 /// deterministic ordering.
 @freezed
-abstract class TimelineEvent with _$TimelineEvent {
+abstract class TimelineEvent with _$TimelineEvent implements StoredEntity {
+  const TimelineEvent._();
+
   const factory TimelineEvent({
     required String id,
     required String title,
@@ -29,4 +34,7 @@ abstract class TimelineEvent with _$TimelineEvent {
 
   factory TimelineEvent.fromJson(Map<String, dynamic> json) =>
       _$TimelineEventFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.timelineEvent;
 }

@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'entity_type.dart';
 import 'story_appearance.dart';
+import 'stored_entity.dart';
 
 part 'story.freezed.dart';
 part 'story.g.dart';
@@ -10,7 +12,9 @@ part 'story.g.dart';
 /// Characters appear in a story through [StoryAppearance], which optionally
 /// pins a specific character version/incarnation.
 @freezed
-abstract class Story with _$Story {
+abstract class Story with _$Story implements StoredEntity {
+  const Story._();
+
   const factory Story({
     required String id,
     required String title,
@@ -35,4 +39,7 @@ abstract class Story with _$Story {
   }) = _Story;
 
   factory Story.fromJson(Map<String, dynamic> json) => _$StoryFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.story;
 }

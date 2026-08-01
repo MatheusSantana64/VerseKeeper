@@ -218,8 +218,8 @@ return $default(_that.id,_that.name,_that.universeId,_that.type,_that.descriptio
 /// @nodoc
 @JsonSerializable()
 
-class _Item implements Item {
-  const _Item({required this.id, required this.name, this.universeId, this.type, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags;
+class _Item extends Item {
+  const _Item({required this.id, required this.name, this.universeId, this.type, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,super._();
   factory _Item.fromJson(Map<String, dynamic> json) => _$ItemFromJson(json);
 
 @override final  String id;

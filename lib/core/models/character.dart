@@ -1,7 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'character_version.dart';
+import 'entity_type.dart';
 import 'relationship.dart';
+import 'stored_entity.dart';
 
 part 'character.freezed.dart';
 part 'character.g.dart';
@@ -16,7 +18,7 @@ part 'character.g.dart';
 /// speech style, AI prompt) are nullable here because a base character may
 /// leave them to its versions.
 @freezed
-abstract class Character with _$Character {
+abstract class Character with _$Character implements StoredEntity {
   const Character._();
 
   const factory Character({
@@ -72,6 +74,9 @@ abstract class Character with _$Character {
 
   factory Character.fromJson(Map<String, dynamic> json) =>
       _$CharacterFromJson(json);
+
+  @override
+  EntityType get entityType => EntityType.character;
 
   /// Resolves this character with a [version]'s overrides applied.
   ///

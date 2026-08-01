@@ -217,8 +217,8 @@ return $default(_that.id,_that.name,_that.universeId,_that.description,_that.not
 /// @nodoc
 @JsonSerializable()
 
-class _Species implements Species {
-  const _Species({required this.id, required this.name, this.universeId, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags;
+class _Species extends Species {
+  const _Species({required this.id, required this.name, this.universeId, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,super._();
   factory _Species.fromJson(Map<String, dynamic> json) => _$SpeciesFromJson(json);
 
 @override final  String id;

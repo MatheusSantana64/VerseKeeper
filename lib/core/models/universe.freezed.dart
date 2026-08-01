@@ -225,8 +225,8 @@ return $default(_that.id,_that.name,_that.description,_that.notes,_that.coverIma
 /// @nodoc
 @JsonSerializable()
 
-class _Universe implements Universe {
-  const _Universe({required this.id, required this.name, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], final  List<String> characterIds = const <String>[], final  List<String> storyIds = const <String>[], final  List<String> locationIds = const <String>[], final  List<String> organizationIds = const <String>[], final  List<String> itemIds = const <String>[], final  List<String> speciesIds = const <String>[], final  List<String> timelineEventIds = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,_characterIds = characterIds,_storyIds = storyIds,_locationIds = locationIds,_organizationIds = organizationIds,_itemIds = itemIds,_speciesIds = speciesIds,_timelineEventIds = timelineEventIds;
+class _Universe extends Universe {
+  const _Universe({required this.id, required this.name, this.description, this.notes, this.coverImageId, final  List<String> imageIds = const <String>[], final  List<String> tags = const <String>[], final  List<String> characterIds = const <String>[], final  List<String> storyIds = const <String>[], final  List<String> locationIds = const <String>[], final  List<String> organizationIds = const <String>[], final  List<String> itemIds = const <String>[], final  List<String> speciesIds = const <String>[], final  List<String> timelineEventIds = const <String>[], required this.createdAt, required this.updatedAt}): _imageIds = imageIds,_tags = tags,_characterIds = characterIds,_storyIds = storyIds,_locationIds = locationIds,_organizationIds = organizationIds,_itemIds = itemIds,_speciesIds = speciesIds,_timelineEventIds = timelineEventIds,super._();
   factory _Universe.fromJson(Map<String, dynamic> json) => _$UniverseFromJson(json);
 
 @override final  String id;
