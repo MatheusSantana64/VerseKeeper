@@ -4,17 +4,20 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/encryption/encryption_providers.dart';
 import '../../core/models/entity_type.dart';
+import '../../core/models/stored_entity.dart';
 import '../app_shell/app_drawer.dart';
+import '../entity/entity_display.dart';
 import '../entity/entity_library_providers.dart';
 import '../entity/entity_type_config.dart';
 
-/// Landing screen: encryption status + per-type library counts.
+/// Landing screen: encryption status + per-type library counts + recent items.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasKey = ref.watch(_hasMasterKeyProvider);
+    final recent = ref.watch(recentlyUpdatedProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('VerseKeeper')),
@@ -42,8 +45,53 @@ class DashboardScreen extends ConsumerWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 24),
+          Text(
+            'Recently updated',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          recent.when(
+            data: (list) => list.isEmpty
+                ? Text(
+                    'Nothing yet — create your first entry.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  )
+                : Column(
+                    children: [
+                      for (final entity in list)
+                        _RecentTile(entity: entity),
+                    ],
+                  ),
+            loading: () => const LinearProgressIndicator(),
+            error: (error, _) => Text('Could not load: $error'),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _RecentTile extends StatelessWidget {
+  const _RecentTile({required this.entity});
+
+  final StoredEntity entity;
+
+  @override
+  Widget build(BuildContext context) {
+    final config = configOf(entity.entityType);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(config.icon),
+      title: Text(displayNameOf(entity)),
+      subtitle: Text(
+        '${config.singular} · ${formatValue(entity.updatedAt)}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () =>
+          context.go('/library/${entity.entityType.name}/${entity.id}'),
     );
   }
 }
@@ -119,4 +167,26 @@ class _EntityCountCard extends StatelessWidget {
 
 final _hasMasterKeyProvider = FutureProvider<bool>((ref) {
   return ref.watch(encryptionServiceProvider).hasMasterKey();
+});
+
+/// The six most recently updated entities across all types.
+final recentlyUpdatedProvider =
+    Provider<AsyncValue<List<StoredEntity>>>((ref) {
+  final all = <StoredEntity>[];
+  var loading = false;
+  Object? firstError;
+  for (final type in EntityType.values) {
+    final value = ref.watch(entityListProvider(type));
+    if (value.hasValue) {
+      all.addAll(value.value ?? const []);
+    } else if (value.isLoading) {
+      loading = true;
+    } else if (value.hasError) {
+      firstError ??= value.error;
+    }
+  }
+  if (firstError != null) return AsyncError(firstError, StackTrace.current);
+  all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  final recent = all.take(6).toList();
+  return loading && recent.isEmpty ? const AsyncLoading() : AsyncData(recent);
 });
