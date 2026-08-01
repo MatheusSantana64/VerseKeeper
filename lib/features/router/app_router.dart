@@ -31,8 +31,7 @@ GoRouter buildAppRouter({String initialLocation = '/'}) {
       }
       return null;
     },
-    routes: [
-      GoRoute(
+    routes: [      GoRoute(
         path: '/',
         name: 'dashboard',
         builder: (context, state) => const DashboardScreen(),
@@ -54,6 +53,7 @@ GoRouter buildAppRouter({String initialLocation = '/'}) {
             name: 'entityCreate',
             builder: (context, state) => EntityEditScreen(
               type: EntityType.values.byName(state.pathParameters['type']!),
+              initialValues: _createInitialValues(state),
             ),
           ),
           GoRoute(
@@ -79,3 +79,10 @@ GoRouter buildAppRouter({String initialLocation = '/'}) {
     ],
   );
 }
+
+/// Extracts prefill values for the create form from query parameters, e.g.
+/// `/library/characterVersion/new?characterId=...`.
+Map<String, dynamic> _createInitialValues(GoRouterState state) => {
+      for (final entry in state.uri.queryParameters.entries)
+        entry.key: entry.value,
+    };

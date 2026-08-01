@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models/character.dart';
+import '../../core/models/character_version.dart';
 import '../../core/models/entity_type.dart';
 import '../../core/models/relationship.dart';
 import '../../core/models/stored_entity.dart';
@@ -169,6 +171,8 @@ class _EntityDetailBody extends ConsumerWidget {
             ),
         if (isCharacter) ..._characterSections(context, ref, theme, json),
         if (isStory) ..._storySections(context, ref, theme, json),
+        if (entity.entityType == EntityType.characterVersion)
+          ..._versionResolvedSection(context, ref, theme, entity),
         const SizedBox(height: 16),
         Text(
           'Created ${formatValue(json['createdAt'])}\n'
@@ -216,6 +220,118 @@ class _EntityDetailBody extends ConsumerWidget {
         ..._customFieldTiles(ref, theme, json['customFields'] as Map),
       ],
       ..._characterStorySection(context, ref, theme),
+      ..._characterVersionsSection(context, ref, theme),
+    ];
+  }
+
+  List<Widget> _characterVersionsSection(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+  ) {
+    final versions = ref.watch(entityListProvider(EntityType.characterVersion));
+    final universes = ref.watch(entityListProvider(EntityType.universe));
+    final universeById = {
+      for (final universe in universes.value ?? const <StoredEntity>[])
+        universe.id: universe,
+    };
+    final mine = [
+      for (final version in versions.value ?? const <StoredEntity>[])
+        if (version.toJson()['characterId'] == entity.id) version,
+    ];
+    return [
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          Text('Versions', style: theme.textTheme.titleSmall),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () => context.go(
+              '/library/${EntityType.characterVersion.name}/new'
+              '?characterId=${entity.id}',
+            ),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('New version'),
+          ),
+        ],
+      ),
+      if (mine.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'No versions yet',
+            style: theme.textTheme.bodySmall,
+          ),
+        )
+      else
+        for (final version in mine)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(configOf(EntityType.characterVersion).icon),
+            title: Text(displayNameOf(version)),
+            subtitle: _versionSubtitle(version, universeById),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () =>
+                context.go('/library/characterVersion/${version.id}'),
+          ),
+    ];
+  }
+
+  Text? _versionSubtitle(
+    StoredEntity version,
+    Map<String, StoredEntity> universeById,
+  ) {
+    final universeId = version.toJson()['universeId'];
+    final universe = universeId is String ? universeById[universeId] : null;
+    if (universe == null) return null;
+    return Text(displayNameOf(universe));
+  }
+
+  List<Widget> _versionResolvedSection(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    StoredEntity versionEntity,
+  ) {
+    final version = versionEntity as CharacterVersion;
+    final base = ref.watch(
+      entityDetailProvider((type: EntityType.character, id: version.characterId)),
+    );
+    return [
+      const SizedBox(height: 8),
+      Text('Resolved snapshot', style: theme.textTheme.titleSmall),
+      const SizedBox(height: 4),
+      base.when(
+        data: (value) {
+          if (value == null) {
+            return Text(
+              'Base character not found.',
+              style: theme.textTheme.bodySmall,
+            );
+          }
+          final resolved = (value as Character).resolve(version);
+          final rows = [
+            'Name: ${resolved.name}',
+            if (resolved.personality != null)
+              'Personality: ${resolved.personality}',
+            if (resolved.appearance != null)
+              'Appearance: ${resolved.appearance}',
+            if (resolved.notes != null) 'Notes: ${resolved.notes}',
+            if (resolved.speechStyle != null)
+              'Speech style: ${resolved.speechStyle}',
+            if (resolved.aiPrompt != null) 'AI prompt: ${resolved.aiPrompt}',
+            if (resolved.tags.isNotEmpty) 'Tags: ${resolved.tags.join(', ')}',
+            if (resolved.relationships.isNotEmpty)
+              'Relationships: ${resolved.relationships.length}',
+          ];
+          return SelectableText(
+            rows.join('\n'),
+            style: theme.textTheme.bodyMedium,
+          );
+        },
+        loading: () => const LinearProgressIndicator(),
+        error: (error, _) => Text('Could not load base character: $error'),
+      ),
     ];
   }
 

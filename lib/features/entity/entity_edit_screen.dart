@@ -18,12 +18,19 @@ import 'entity_type_config.dart';
 ///
 /// With a null [id] the screen creates a new entity; otherwise it loads and
 /// edits the existing one. Fields come from [entityFormSpecs]; complex nested
-/// structures are not editable yet.
+/// structures are not editable yet. [initialValues] pre-fills fields when
+/// creating (e.g. a pre-selected character when creating a version).
 class EntityEditScreen extends ConsumerStatefulWidget {
-  const EntityEditScreen({super.key, required this.type, this.id});
+  const EntityEditScreen({
+    super.key,
+    required this.type,
+    this.id,
+    this.initialValues,
+  });
 
   final EntityType type;
   final String? id;
+  final Map<String, dynamic>? initialValues;
 
   @override
   ConsumerState<EntityEditScreen> createState() => _EntityEditScreenState();
@@ -101,6 +108,27 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
                   return const <String, dynamic>{};
                 }).toList()
               : const <Map<String, dynamic>>[];
+      }
+    }
+  }
+
+  void _applyInitialValues(Map<String, dynamic> values) {
+    for (final spec in entityFormSpecs[widget.type]!) {
+      if (!values.containsKey(spec.key)) continue;
+      final value = values[spec.key];
+      switch (spec.kind) {
+        case FormFieldKind.text:
+        case FormFieldKind.multiline:
+        case FormFieldKind.number:
+          if (value != null) _controllers[spec.key]?.text = value.toString();
+        case FormFieldKind.tags:
+        case FormFieldKind.entityPickerMulti:
+          if (value is List) _values[spec.key] = value.cast<String>();
+        case FormFieldKind.entityPicker:
+          _values[spec.key] = value as String?;
+        case FormFieldKind.relationshipList:
+        case FormFieldKind.storyAppearanceList:
+          break;
       }
     }
   }
@@ -193,6 +221,11 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
       _prefilled = true;
       _existingJson = existing;
       _prefill(entityFromJson(widget.type, existing));
+    } else if (existing == null &&
+        widget.initialValues != null &&
+        !_prefilled) {
+      _prefilled = true;
+      _applyInitialValues(widget.initialValues!);
     }
 
     final specs = entityFormSpecs[widget.type]!;
