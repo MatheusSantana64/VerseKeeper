@@ -84,6 +84,47 @@ void main() {
     await unmountTestApp(tester);
   });
 
+  testWidgets('editing a version hints at un-overridden inherited values',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final haru = Character(
+      id: 'char-haru',
+      name: 'Haru',
+      personality: 'kind',
+      createdAt: DateTime.utc(2024, 1, 1),
+      updatedAt: DateTime.utc(2024, 1, 1),
+    );
+    final princess = CharacterVersion(
+      id: 'ver-princess',
+      characterId: 'char-haru',
+      name: 'Princess',
+      createdAt: DateTime.utc(2024, 2, 1),
+      updatedAt: DateTime.utc(2024, 2, 1),
+    );
+    final database = await seededDatabase([haru, princess]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      buildTestApp(
+        database,
+        initialLocation: '/library/characterVersion/ver-princess/edit',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Character version'), findsOneWidget);
+    expect(
+      find.text('Leave a field empty to inherit it from Haru.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Inherits: kind'), findsOneWidget);
+
+    await unmountTestApp(tester);
+  });
+
   testWidgets('version detail renders the resolved snapshot from the base',
       (tester) async {
     final haru = Character(
