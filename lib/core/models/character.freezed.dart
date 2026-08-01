@@ -17,7 +17,15 @@ mixin _$Character {
 
 /// Stable unique identifier. Never changes after creation.
  String get id;/// Primary display name, e.g. "Haru".
- String get name;/// Alternate names / nicknames.
+ String get name;/// Occupation or role, e.g. "Swordfighter".
+ String? get profession;/// Free-form age, e.g. "34" or "Young adult".
+ String? get age;/// Free-form race/species label, e.g. "Human".
+ String? get race;/// Faction or group this character belongs to.
+ String? get faction;/// Long-form description.
+ String? get description;/// User-created custom field values, keyed by the id of the defining
+/// [FieldDefinition]. Every character shares the same set of custom field
+/// definitions, so all characters render the same extra inputs.
+ Map<String, String> get customFields;/// Alternate names / nicknames.
  List<String> get aliases;/// User-assigned tags, used for filtering and search. Plaintext metadata.
  List<String> get tags;/// Universes this character appears in (a character is reused across
 /// universes, unlike most other entities which belong to one).
@@ -44,16 +52,16 @@ $CharacterCopyWith<Character> get copyWith => _$CharacterCopyWithImpl<Character>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Character&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.aliases, aliases)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.universeIds, universeIds)&&(identical(other.coverImageId, coverImageId) || other.coverImageId == coverImageId)&&const DeepCollectionEquality().equals(other.imageIds, imageIds)&&(identical(other.personality, personality) || other.personality == personality)&&(identical(other.appearance, appearance) || other.appearance == appearance)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.speechStyle, speechStyle) || other.speechStyle == speechStyle)&&(identical(other.aiPrompt, aiPrompt) || other.aiPrompt == aiPrompt)&&const DeepCollectionEquality().equals(other.storyIds, storyIds)&&const DeepCollectionEquality().equals(other.versionIds, versionIds)&&const DeepCollectionEquality().equals(other.relationships, relationships)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Character&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.profession, profession) || other.profession == profession)&&(identical(other.age, age) || other.age == age)&&(identical(other.race, race) || other.race == race)&&(identical(other.faction, faction) || other.faction == faction)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.customFields, customFields)&&const DeepCollectionEquality().equals(other.aliases, aliases)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.universeIds, universeIds)&&(identical(other.coverImageId, coverImageId) || other.coverImageId == coverImageId)&&const DeepCollectionEquality().equals(other.imageIds, imageIds)&&(identical(other.personality, personality) || other.personality == personality)&&(identical(other.appearance, appearance) || other.appearance == appearance)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.speechStyle, speechStyle) || other.speechStyle == speechStyle)&&(identical(other.aiPrompt, aiPrompt) || other.aiPrompt == aiPrompt)&&const DeepCollectionEquality().equals(other.storyIds, storyIds)&&const DeepCollectionEquality().equals(other.versionIds, versionIds)&&const DeepCollectionEquality().equals(other.relationships, relationships)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,const DeepCollectionEquality().hash(aliases),const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(universeIds),coverImageId,const DeepCollectionEquality().hash(imageIds),personality,appearance,notes,speechStyle,aiPrompt,const DeepCollectionEquality().hash(storyIds),const DeepCollectionEquality().hash(versionIds),const DeepCollectionEquality().hash(relationships),createdAt,updatedAt);
+int get hashCode => Object.hashAll([runtimeType,id,name,profession,age,race,faction,description,const DeepCollectionEquality().hash(customFields),const DeepCollectionEquality().hash(aliases),const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(universeIds),coverImageId,const DeepCollectionEquality().hash(imageIds),personality,appearance,notes,speechStyle,aiPrompt,const DeepCollectionEquality().hash(storyIds),const DeepCollectionEquality().hash(versionIds),const DeepCollectionEquality().hash(relationships),createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'Character(id: $id, name: $name, aliases: $aliases, tags: $tags, universeIds: $universeIds, coverImageId: $coverImageId, imageIds: $imageIds, personality: $personality, appearance: $appearance, notes: $notes, speechStyle: $speechStyle, aiPrompt: $aiPrompt, storyIds: $storyIds, versionIds: $versionIds, relationships: $relationships, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Character(id: $id, name: $name, profession: $profession, age: $age, race: $race, faction: $faction, description: $description, customFields: $customFields, aliases: $aliases, tags: $tags, universeIds: $universeIds, coverImageId: $coverImageId, imageIds: $imageIds, personality: $personality, appearance: $appearance, notes: $notes, speechStyle: $speechStyle, aiPrompt: $aiPrompt, storyIds: $storyIds, versionIds: $versionIds, relationships: $relationships, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -64,7 +72,7 @@ abstract mixin class $CharacterCopyWith<$Res>  {
   factory $CharacterCopyWith(Character value, $Res Function(Character) _then) = _$CharacterCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, List<String> aliases, List<String> tags, List<String> universeIds, String? coverImageId, List<String> imageIds, String? personality, String? appearance, String? notes, String? speechStyle, String? aiPrompt, List<String> storyIds, List<String> versionIds, List<Relationship> relationships, DateTime createdAt, DateTime updatedAt
+ String id, String name, String? profession, String? age, String? race, String? faction, String? description, Map<String, String> customFields, List<String> aliases, List<String> tags, List<String> universeIds, String? coverImageId, List<String> imageIds, String? personality, String? appearance, String? notes, String? speechStyle, String? aiPrompt, List<String> storyIds, List<String> versionIds, List<Relationship> relationships, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -81,11 +89,17 @@ class _$CharacterCopyWithImpl<$Res>
 
 /// Create a copy of Character
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? aliases = null,Object? tags = null,Object? universeIds = null,Object? coverImageId = freezed,Object? imageIds = null,Object? personality = freezed,Object? appearance = freezed,Object? notes = freezed,Object? speechStyle = freezed,Object? aiPrompt = freezed,Object? storyIds = null,Object? versionIds = null,Object? relationships = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? profession = freezed,Object? age = freezed,Object? race = freezed,Object? faction = freezed,Object? description = freezed,Object? customFields = null,Object? aliases = null,Object? tags = null,Object? universeIds = null,Object? coverImageId = freezed,Object? imageIds = null,Object? personality = freezed,Object? appearance = freezed,Object? notes = freezed,Object? speechStyle = freezed,Object? aiPrompt = freezed,Object? storyIds = null,Object? versionIds = null,Object? relationships = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
+as String,profession: freezed == profession ? _self.profession : profession // ignore: cast_nullable_to_non_nullable
+as String?,age: freezed == age ? _self.age : age // ignore: cast_nullable_to_non_nullable
+as String?,race: freezed == race ? _self.race : race // ignore: cast_nullable_to_non_nullable
+as String?,faction: freezed == faction ? _self.faction : faction // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,customFields: null == customFields ? _self.customFields : customFields // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
 as List<String>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,universeIds: null == universeIds ? _self.universeIds : universeIds // ignore: cast_nullable_to_non_nullable
 as List<String>,coverImageId: freezed == coverImageId ? _self.coverImageId : coverImageId // ignore: cast_nullable_to_non_nullable
@@ -185,10 +199,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  List<String> aliases,  List<String> tags,  List<String> universeIds,  String? coverImageId,  List<String> imageIds,  String? personality,  String? appearance,  String? notes,  String? speechStyle,  String? aiPrompt,  List<String> storyIds,  List<String> versionIds,  List<Relationship> relationships,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? profession,  String? age,  String? race,  String? faction,  String? description,  Map<String, String> customFields,  List<String> aliases,  List<String> tags,  List<String> universeIds,  String? coverImageId,  List<String> imageIds,  String? personality,  String? appearance,  String? notes,  String? speechStyle,  String? aiPrompt,  List<String> storyIds,  List<String> versionIds,  List<Relationship> relationships,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Character() when $default != null:
-return $default(_that.id,_that.name,_that.aliases,_that.tags,_that.universeIds,_that.coverImageId,_that.imageIds,_that.personality,_that.appearance,_that.notes,_that.speechStyle,_that.aiPrompt,_that.storyIds,_that.versionIds,_that.relationships,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.profession,_that.age,_that.race,_that.faction,_that.description,_that.customFields,_that.aliases,_that.tags,_that.universeIds,_that.coverImageId,_that.imageIds,_that.personality,_that.appearance,_that.notes,_that.speechStyle,_that.aiPrompt,_that.storyIds,_that.versionIds,_that.relationships,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -206,10 +220,10 @@ return $default(_that.id,_that.name,_that.aliases,_that.tags,_that.universeIds,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  List<String> aliases,  List<String> tags,  List<String> universeIds,  String? coverImageId,  List<String> imageIds,  String? personality,  String? appearance,  String? notes,  String? speechStyle,  String? aiPrompt,  List<String> storyIds,  List<String> versionIds,  List<Relationship> relationships,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? profession,  String? age,  String? race,  String? faction,  String? description,  Map<String, String> customFields,  List<String> aliases,  List<String> tags,  List<String> universeIds,  String? coverImageId,  List<String> imageIds,  String? personality,  String? appearance,  String? notes,  String? speechStyle,  String? aiPrompt,  List<String> storyIds,  List<String> versionIds,  List<Relationship> relationships,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Character():
-return $default(_that.id,_that.name,_that.aliases,_that.tags,_that.universeIds,_that.coverImageId,_that.imageIds,_that.personality,_that.appearance,_that.notes,_that.speechStyle,_that.aiPrompt,_that.storyIds,_that.versionIds,_that.relationships,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.profession,_that.age,_that.race,_that.faction,_that.description,_that.customFields,_that.aliases,_that.tags,_that.universeIds,_that.coverImageId,_that.imageIds,_that.personality,_that.appearance,_that.notes,_that.speechStyle,_that.aiPrompt,_that.storyIds,_that.versionIds,_that.relationships,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -226,10 +240,10 @@ return $default(_that.id,_that.name,_that.aliases,_that.tags,_that.universeIds,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  List<String> aliases,  List<String> tags,  List<String> universeIds,  String? coverImageId,  List<String> imageIds,  String? personality,  String? appearance,  String? notes,  String? speechStyle,  String? aiPrompt,  List<String> storyIds,  List<String> versionIds,  List<Relationship> relationships,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? profession,  String? age,  String? race,  String? faction,  String? description,  Map<String, String> customFields,  List<String> aliases,  List<String> tags,  List<String> universeIds,  String? coverImageId,  List<String> imageIds,  String? personality,  String? appearance,  String? notes,  String? speechStyle,  String? aiPrompt,  List<String> storyIds,  List<String> versionIds,  List<Relationship> relationships,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Character() when $default != null:
-return $default(_that.id,_that.name,_that.aliases,_that.tags,_that.universeIds,_that.coverImageId,_that.imageIds,_that.personality,_that.appearance,_that.notes,_that.speechStyle,_that.aiPrompt,_that.storyIds,_that.versionIds,_that.relationships,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.profession,_that.age,_that.race,_that.faction,_that.description,_that.customFields,_that.aliases,_that.tags,_that.universeIds,_that.coverImageId,_that.imageIds,_that.personality,_that.appearance,_that.notes,_that.speechStyle,_that.aiPrompt,_that.storyIds,_that.versionIds,_that.relationships,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -241,13 +255,36 @@ return $default(_that.id,_that.name,_that.aliases,_that.tags,_that.universeIds,_
 @JsonSerializable()
 
 class _Character extends Character {
-  const _Character({required this.id, required this.name, final  List<String> aliases = const <String>[], final  List<String> tags = const <String>[], final  List<String> universeIds = const <String>[], this.coverImageId, final  List<String> imageIds = const <String>[], this.personality, this.appearance, this.notes, this.speechStyle, this.aiPrompt, final  List<String> storyIds = const <String>[], final  List<String> versionIds = const <String>[], final  List<Relationship> relationships = const <Relationship>[], required this.createdAt, required this.updatedAt}): _aliases = aliases,_tags = tags,_universeIds = universeIds,_imageIds = imageIds,_storyIds = storyIds,_versionIds = versionIds,_relationships = relationships,super._();
+  const _Character({required this.id, required this.name, this.profession, this.age, this.race, this.faction, this.description, final  Map<String, String> customFields = const <String, String>{}, final  List<String> aliases = const <String>[], final  List<String> tags = const <String>[], final  List<String> universeIds = const <String>[], this.coverImageId, final  List<String> imageIds = const <String>[], this.personality, this.appearance, this.notes, this.speechStyle, this.aiPrompt, final  List<String> storyIds = const <String>[], final  List<String> versionIds = const <String>[], final  List<Relationship> relationships = const <Relationship>[], required this.createdAt, required this.updatedAt}): _customFields = customFields,_aliases = aliases,_tags = tags,_universeIds = universeIds,_imageIds = imageIds,_storyIds = storyIds,_versionIds = versionIds,_relationships = relationships,super._();
   factory _Character.fromJson(Map<String, dynamic> json) => _$CharacterFromJson(json);
 
 /// Stable unique identifier. Never changes after creation.
 @override final  String id;
 /// Primary display name, e.g. "Haru".
 @override final  String name;
+/// Occupation or role, e.g. "Swordfighter".
+@override final  String? profession;
+/// Free-form age, e.g. "34" or "Young adult".
+@override final  String? age;
+/// Free-form race/species label, e.g. "Human".
+@override final  String? race;
+/// Faction or group this character belongs to.
+@override final  String? faction;
+/// Long-form description.
+@override final  String? description;
+/// User-created custom field values, keyed by the id of the defining
+/// [FieldDefinition]. Every character shares the same set of custom field
+/// definitions, so all characters render the same extra inputs.
+ final  Map<String, String> _customFields;
+/// User-created custom field values, keyed by the id of the defining
+/// [FieldDefinition]. Every character shares the same set of custom field
+/// definitions, so all characters render the same extra inputs.
+@override@JsonKey() Map<String, String> get customFields {
+  if (_customFields is EqualUnmodifiableMapView) return _customFields;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_customFields);
+}
+
 /// Alternate names / nicknames.
  final  List<String> _aliases;
 /// Alternate names / nicknames.
@@ -341,16 +378,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Character&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other._aliases, _aliases)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._universeIds, _universeIds)&&(identical(other.coverImageId, coverImageId) || other.coverImageId == coverImageId)&&const DeepCollectionEquality().equals(other._imageIds, _imageIds)&&(identical(other.personality, personality) || other.personality == personality)&&(identical(other.appearance, appearance) || other.appearance == appearance)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.speechStyle, speechStyle) || other.speechStyle == speechStyle)&&(identical(other.aiPrompt, aiPrompt) || other.aiPrompt == aiPrompt)&&const DeepCollectionEquality().equals(other._storyIds, _storyIds)&&const DeepCollectionEquality().equals(other._versionIds, _versionIds)&&const DeepCollectionEquality().equals(other._relationships, _relationships)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Character&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.profession, profession) || other.profession == profession)&&(identical(other.age, age) || other.age == age)&&(identical(other.race, race) || other.race == race)&&(identical(other.faction, faction) || other.faction == faction)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._customFields, _customFields)&&const DeepCollectionEquality().equals(other._aliases, _aliases)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._universeIds, _universeIds)&&(identical(other.coverImageId, coverImageId) || other.coverImageId == coverImageId)&&const DeepCollectionEquality().equals(other._imageIds, _imageIds)&&(identical(other.personality, personality) || other.personality == personality)&&(identical(other.appearance, appearance) || other.appearance == appearance)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.speechStyle, speechStyle) || other.speechStyle == speechStyle)&&(identical(other.aiPrompt, aiPrompt) || other.aiPrompt == aiPrompt)&&const DeepCollectionEquality().equals(other._storyIds, _storyIds)&&const DeepCollectionEquality().equals(other._versionIds, _versionIds)&&const DeepCollectionEquality().equals(other._relationships, _relationships)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,const DeepCollectionEquality().hash(_aliases),const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_universeIds),coverImageId,const DeepCollectionEquality().hash(_imageIds),personality,appearance,notes,speechStyle,aiPrompt,const DeepCollectionEquality().hash(_storyIds),const DeepCollectionEquality().hash(_versionIds),const DeepCollectionEquality().hash(_relationships),createdAt,updatedAt);
+int get hashCode => Object.hashAll([runtimeType,id,name,profession,age,race,faction,description,const DeepCollectionEquality().hash(_customFields),const DeepCollectionEquality().hash(_aliases),const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_universeIds),coverImageId,const DeepCollectionEquality().hash(_imageIds),personality,appearance,notes,speechStyle,aiPrompt,const DeepCollectionEquality().hash(_storyIds),const DeepCollectionEquality().hash(_versionIds),const DeepCollectionEquality().hash(_relationships),createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'Character(id: $id, name: $name, aliases: $aliases, tags: $tags, universeIds: $universeIds, coverImageId: $coverImageId, imageIds: $imageIds, personality: $personality, appearance: $appearance, notes: $notes, speechStyle: $speechStyle, aiPrompt: $aiPrompt, storyIds: $storyIds, versionIds: $versionIds, relationships: $relationships, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Character(id: $id, name: $name, profession: $profession, age: $age, race: $race, faction: $faction, description: $description, customFields: $customFields, aliases: $aliases, tags: $tags, universeIds: $universeIds, coverImageId: $coverImageId, imageIds: $imageIds, personality: $personality, appearance: $appearance, notes: $notes, speechStyle: $speechStyle, aiPrompt: $aiPrompt, storyIds: $storyIds, versionIds: $versionIds, relationships: $relationships, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -361,7 +398,7 @@ abstract mixin class _$CharacterCopyWith<$Res> implements $CharacterCopyWith<$Re
   factory _$CharacterCopyWith(_Character value, $Res Function(_Character) _then) = __$CharacterCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, List<String> aliases, List<String> tags, List<String> universeIds, String? coverImageId, List<String> imageIds, String? personality, String? appearance, String? notes, String? speechStyle, String? aiPrompt, List<String> storyIds, List<String> versionIds, List<Relationship> relationships, DateTime createdAt, DateTime updatedAt
+ String id, String name, String? profession, String? age, String? race, String? faction, String? description, Map<String, String> customFields, List<String> aliases, List<String> tags, List<String> universeIds, String? coverImageId, List<String> imageIds, String? personality, String? appearance, String? notes, String? speechStyle, String? aiPrompt, List<String> storyIds, List<String> versionIds, List<Relationship> relationships, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -378,11 +415,17 @@ class __$CharacterCopyWithImpl<$Res>
 
 /// Create a copy of Character
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? aliases = null,Object? tags = null,Object? universeIds = null,Object? coverImageId = freezed,Object? imageIds = null,Object? personality = freezed,Object? appearance = freezed,Object? notes = freezed,Object? speechStyle = freezed,Object? aiPrompt = freezed,Object? storyIds = null,Object? versionIds = null,Object? relationships = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? profession = freezed,Object? age = freezed,Object? race = freezed,Object? faction = freezed,Object? description = freezed,Object? customFields = null,Object? aliases = null,Object? tags = null,Object? universeIds = null,Object? coverImageId = freezed,Object? imageIds = null,Object? personality = freezed,Object? appearance = freezed,Object? notes = freezed,Object? speechStyle = freezed,Object? aiPrompt = freezed,Object? storyIds = null,Object? versionIds = null,Object? relationships = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_Character(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
+as String,profession: freezed == profession ? _self.profession : profession // ignore: cast_nullable_to_non_nullable
+as String?,age: freezed == age ? _self.age : age // ignore: cast_nullable_to_non_nullable
+as String?,race: freezed == race ? _self.race : race // ignore: cast_nullable_to_non_nullable
+as String?,faction: freezed == faction ? _self.faction : faction // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,customFields: null == customFields ? _self._customFields : customFields // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
 as List<String>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,universeIds: null == universeIds ? _self._universeIds : universeIds // ignore: cast_nullable_to_non_nullable
 as List<String>,coverImageId: freezed == coverImageId ? _self.coverImageId : coverImageId // ignore: cast_nullable_to_non_nullable

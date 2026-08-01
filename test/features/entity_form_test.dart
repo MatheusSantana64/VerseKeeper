@@ -89,5 +89,16 @@ void main() {
       expect(entity.toJson()['name'], 'Eryndor');
       expect(entity.toJson()['characterIds'], isEmpty);
     });
+
+    test('field definition builds from name only', () {
+      final entity = entityFromJson(EntityType.fieldDefinition, {
+        'id': 'fd1',
+        'name': 'Birthplace',
+        'createdAt': iso(2024, 5, 1),
+        'updatedAt': iso(2024, 5, 1),
+      });
+      expect(entity.entityType, EntityType.fieldDefinition);
+      expect(entity.toJson()['name'], 'Birthplace');
+    });
   });
 }

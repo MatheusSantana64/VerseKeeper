@@ -66,6 +66,11 @@ const Map<EntityType, EntityTypeConfig> entityTypeConfigs = {
     singular: 'Timeline event',
     icon: Icons.schedule_outlined,
   ),
+  EntityType.fieldDefinition: EntityTypeConfig(
+    label: 'Character fields',
+    singular: 'Character field',
+    icon: Icons.playlist_add,
+  ),
 };
 
 /// Types promoted to first-class navigation/dashboard destinations.

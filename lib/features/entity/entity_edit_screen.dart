@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models/entity_type.dart';
+import '../../core/models/relationship.dart';
 import '../../core/models/stored_entity.dart';
 import '../../core/utils/id_generator.dart';
 import '../app_shell/app_drawer.dart';
@@ -30,6 +31,7 @@ class EntityEditScreen extends ConsumerStatefulWidget {
 class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, TextEditingController> _customControllers = {};
   final Map<String, dynamic> _values = {};
   final _idGenerator = const UuidIdGenerator();
   late final String _newId = _idGenerator.newId();
@@ -43,15 +45,16 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
   void initState() {
     super.initState();
     for (final spec in entityFormSpecs[widget.type]!) {
-      if (spec.kind == FormFieldKind.tags ||
-          spec.kind == FormFieldKind.entityPicker ||
-          spec.kind == FormFieldKind.entityPickerMulti) {
-        _values[spec.key] = spec.kind == FormFieldKind.tags ||
-                spec.kind == FormFieldKind.entityPickerMulti
-            ? const <String>[]
-            : null;
-      } else {
-        _controllers[spec.key] = TextEditingController();
+      switch (spec.kind) {
+        case FormFieldKind.tags:
+        case FormFieldKind.entityPickerMulti:
+          _values[spec.key] = const <String>[];
+        case FormFieldKind.entityPicker:
+          _values[spec.key] = null;
+        case FormFieldKind.relationshipList:
+          _values[spec.key] = const <Map<String, dynamic>>[];
+        default:
+          _controllers[spec.key] = TextEditingController();
       }
     }
   }
@@ -59,6 +62,9 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
   @override
   void dispose() {
     for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _customControllers.values) {
       controller.dispose();
     }
     super.dispose();
@@ -81,6 +87,10 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
         case FormFieldKind.entityPickerMulti:
           _values[spec.key] =
               raw is List ? raw.cast<String>() : const <String>[];
+        case FormFieldKind.relationshipList:
+          _values[spec.key] = raw is List
+              ? raw.map((r) => (r as Relationship).toJson()).toList()
+              : const <Map<String, dynamic>>[];
       }
     }
   }
@@ -100,6 +110,9 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
         return _values[spec.key] as String?;
       case FormFieldKind.entityPickerMulti:
         return _values[spec.key] as List<String>? ?? const <String>[];
+      case FormFieldKind.relationshipList:
+        return _values[spec.key] as List<Map<String, dynamic>>? ??
+            const <Map<String, dynamic>>[];
     }
   }
 
@@ -110,6 +123,13 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
       for (final spec in entityFormSpecs[widget.type]!)
         spec.key: _valueFor(spec),
     };
+    if (widget.type == EntityType.character) {
+      values['customFields'] = <String, String>{
+        for (final entry in _customControllers.entries)
+          if (entry.value.text.trim().isNotEmpty)
+            entry.key: entry.value.text.trim(),
+      };
+    }
     final now = DateTime.now().toUtc().toIso8601String();
     final json = <String, dynamic>{
       ...?_existingJson,
@@ -178,6 +198,8 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     for (final spec in specs) _buildField(spec),
+                    if (widget.type == EntityType.character)
+                      ..._buildCustomFields(),
                   ],
                 ),
               ),
@@ -269,6 +291,77 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
             onChanged: (ids) => setState(() => _values[spec.key] = List.of(ids)),
           ),
         );
+      case FormFieldKind.relationshipList:
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _RelationshipListEditor(
+            relationships:
+                _values[spec.key] as List<Map<String, dynamic>>? ?? const [],
+            excludeId: widget.id,
+            onChanged: (relationships) =>
+                setState(() => _values[spec.key] = List.of(relationships)),
+          ),
+        );
+    }
+  }
+
+  /// Renders one editable input per defined custom field, creating and
+  /// pre-filling the backing controller lazily from the existing JSON.
+  List<Widget> _buildCustomFields() {
+    final defs = ref.watch(entityListProvider(EntityType.fieldDefinition));
+    return defs.when(
+      data: (definitions) {
+        _syncCustomControllers(definitions);
+        if (definitions.isEmpty) return const <Widget>[];
+        final theme = Theme.of(context);
+        return [
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            child: Row(
+              children: [
+                Text(
+                  'Custom fields',
+                  style: theme.textTheme.titleSmall,
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => context.go(
+                    '/library/${EntityType.fieldDefinition.name}',
+                  ),
+                  icon: const Icon(Icons.playlist_add, size: 18),
+                  label: const Text('Manage'),
+                ),
+              ],
+            ),
+          ),
+          for (final definition in definitions)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TextFormField(
+                controller: _customControllers[definition.id],
+                decoration:
+                    InputDecoration(labelText: displayNameOf(definition)),
+              ),
+            ),
+        ];
+      },
+      loading: () => const <Widget>[],
+      error: (error, _) => [
+        Text('Could not load custom fields: $error'),
+      ],
+    );
+  }
+
+  void _syncCustomControllers(List<StoredEntity> definitions) {
+    final existing = _existingJson?['customFields'];
+    for (final definition in definitions) {
+      if (_customControllers.containsKey(definition.id)) continue;
+      final controller = TextEditingController();
+      if (existing is Map) {
+        final value = existing[definition.id];
+        if (value is String) controller.text = value;
+      }
+      _customControllers[definition.id] = controller;
     }
   }
 
@@ -463,6 +556,249 @@ class _EntityMultiPickerField extends ConsumerWidget {
       ),
       loading: () => const LinearProgressIndicator(),
       error: (error, _) => Text('Could not load options: $error'),
+    );
+  }
+}
+
+/// Draft state for one relationship row in the character form.
+class _RelationshipDraft {
+  _RelationshipDraft({
+    this.otherCharacterId,
+    this.type = RelationshipType.friend,
+    String? customLabel,
+    String? notes,
+  })  : customLabelController = TextEditingController(text: customLabel),
+        notesController = TextEditingController(text: notes);
+
+  String? otherCharacterId;
+  RelationshipType type;
+  final TextEditingController customLabelController;
+  final TextEditingController notesController;
+
+  Map<String, dynamic> toJson() => {
+        'otherCharacterId': otherCharacterId,
+        'type': type.name,
+        if (customLabelController.text.trim().isNotEmpty)
+          'customLabel': customLabelController.text.trim(),
+        if (notesController.text.trim().isNotEmpty)
+          'notes': notesController.text.trim(),
+      };
+
+  void dispose() {
+    customLabelController.dispose();
+    notesController.dispose();
+  }
+}
+
+/// Editable list of [Relationship]s (nested editor for the character form).
+class _RelationshipListEditor extends ConsumerStatefulWidget {
+  const _RelationshipListEditor({
+    required this.relationships,
+    required this.excludeId,
+    required this.onChanged,
+  });
+
+  final List<Map<String, dynamic>> relationships;
+  final String? excludeId;
+  final ValueChanged<List<Map<String, dynamic>>> onChanged;
+
+  @override
+  ConsumerState<_RelationshipListEditor> createState() =>
+      _RelationshipListEditorState();
+}
+
+class _RelationshipListEditorState
+    extends ConsumerState<_RelationshipListEditor> {
+  late final List<_RelationshipDraft> _drafts;
+
+  @override
+  void initState() {
+    super.initState();
+    _drafts = widget.relationships
+        .map((json) => _RelationshipDraft(
+              otherCharacterId: json['otherCharacterId'] as String?,
+              type: RelationshipType.values.byName(json['type'] as String),
+              customLabel: json['customLabel'] as String?,
+              notes: json['notes'] as String?,
+            ))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final draft in _drafts) {
+      draft.dispose();
+    }
+    super.dispose();
+  }
+
+  void _sync() {
+    widget.onChanged([
+      for (final draft in _drafts)
+        if (draft.otherCharacterId != null) draft.toJson(),
+    ]);
+  }
+
+  void _add() {
+    setState(() => _drafts.add(_RelationshipDraft()));
+    _sync();
+  }
+
+  void _remove(int index) {
+    _drafts.removeAt(index).dispose();
+    setState(() {});
+    _sync();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final candidates = ref.watch(entityListProvider(EntityType.character));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Relationships',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        candidates.when(
+          data: (characters) {
+            if (_drafts.isEmpty && characters.isEmpty) {
+              return Text(
+                'No other characters yet',
+                style: theme.textTheme.bodySmall,
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < _drafts.length; index++)
+                  _RelationshipTile(
+                    draft: _drafts[index],
+                    characters: characters,
+                    excludeId: widget.excludeId,
+                    onChanged: () => setState(_sync),
+                    onRemove: () => _remove(index),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: _add,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add relationship'),
+                ),
+              ],
+            );
+          },
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) => Text('Could not load characters: $error'),
+        ),
+      ],
+    );
+  }
+}
+
+/// One editable relationship row.
+class _RelationshipTile extends StatelessWidget {
+  const _RelationshipTile({
+    required this.draft,
+    required this.characters,
+    required this.excludeId,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  final _RelationshipDraft draft;
+  final List<StoredEntity> characters;
+  final String? excludeId;
+  final VoidCallback onChanged;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final options =
+        characters.where((character) => character.id != excludeId).toList();
+    final selectedTarget =
+        options.any((character) => character.id == draft.otherCharacterId)
+            ? draft.otherCharacterId
+            : '';
+    final typeValue = draft.type.name;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: selectedTarget,
+                    decoration: const InputDecoration(labelText: 'Character'),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: '',
+                        child: Text('(Choose character)'),
+                      ),
+                      for (final character in options)
+                        DropdownMenuItem<String>(
+                          value: character.id,
+                          child: Text(
+                            displayNameOf(character),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      draft.otherCharacterId =
+                          (value == null || value.isEmpty) ? null : value;
+                      onChanged();
+                    },
+                  ),
+                ),
+                IconButton(
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Remove relationship',
+                ),
+              ],
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: typeValue,
+              decoration: const InputDecoration(labelText: 'Type'),
+              items: [
+                for (final type in RelationshipType.values)
+                  DropdownMenuItem<String>(
+                    value: type.name,
+                    child: Text(prettyLabel(type.name)),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  draft.type = RelationshipType.values.byName(value);
+                  onChanged();
+                }
+              },
+            ),
+            if (draft.type == RelationshipType.custom)
+              TextField(
+                controller: draft.customLabelController,
+                decoration: const InputDecoration(labelText: 'Label'),
+                onChanged: (_) => onChanged(),
+              ),
+            TextField(
+              controller: draft.notesController,
+              decoration: const InputDecoration(labelText: 'Notes'),
+              maxLines: 2,
+              onChanged: (_) => onChanged(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

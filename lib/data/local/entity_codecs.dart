@@ -1,6 +1,7 @@
 import '../../core/models/character.dart';
 import '../../core/models/character_version.dart';
 import '../../core/models/entity_type.dart';
+import '../../core/models/field_definition.dart';
 import '../../core/models/item.dart';
 import '../../core/models/location.dart';
 import '../../core/models/organization.dart';
@@ -33,7 +34,30 @@ class CharacterCodec extends BaseEntityCodec<Character> {
         e.notes,
         e.speechStyle,
         e.aiPrompt,
+        e.profession,
+        e.age,
+        e.race,
+        e.faction,
+        e.description,
+        ...e.customFields.values,
       ]);
+}
+
+class FieldDefinitionCodec extends BaseEntityCodec<FieldDefinition> {
+  const FieldDefinitionCodec();
+
+  @override
+  EntityType get type => EntityType.fieldDefinition;
+
+  @override
+  FieldDefinition fromJson(Map<String, dynamic> json) =>
+      FieldDefinition.fromJson(json);
+
+  @override
+  String nameOf(FieldDefinition e) => e.name;
+
+  @override
+  String searchTextOf(FieldDefinition e) => e.name;
 }
 
 class CharacterVersionCodec extends BaseEntityCodec<CharacterVersion> {
@@ -196,6 +220,7 @@ final Map<EntityType, EntityCodec> entityCodecs = {
   EntityType.item: ItemCodec(),
   EntityType.species: SpeciesCodec(),
   EntityType.timelineEvent: TimelineEventCodec(),
+  EntityType.fieldDefinition: FieldDefinitionCodec(),
 };
 
 /// Type-safe accessor for [entityCodecs].

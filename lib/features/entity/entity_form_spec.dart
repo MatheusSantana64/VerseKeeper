@@ -19,6 +19,9 @@ enum FormFieldKind {
 
   /// Reference to several other entities, picked with filter chips.
   entityPickerMulti,
+
+  /// Nested list of [Relationship]s to other entities.
+  relationshipList,
 }
 
 /// Defines one editable field of an entity type.
@@ -56,7 +59,11 @@ class FormFieldSpec {
 const Map<EntityType, List<FormFieldSpec>> entityFormSpecs = {
   EntityType.character: [
     FormFieldSpec(key: 'name', label: 'Name', kind: FormFieldKind.text, required: true),
-    FormFieldSpec(key: 'aliases', label: 'Aliases', kind: FormFieldKind.tags),
+    FormFieldSpec(key: 'profession', label: 'Profession', kind: FormFieldKind.text),
+    FormFieldSpec(key: 'age', label: 'Age', kind: FormFieldKind.text),
+    FormFieldSpec(key: 'race', label: 'Race', kind: FormFieldKind.text),
+    FormFieldSpec(key: 'faction', label: 'Faction', kind: FormFieldKind.text),
+    FormFieldSpec(key: 'description', label: 'Description', kind: FormFieldKind.multiline),
     FormFieldSpec(key: 'tags', label: 'Tags', kind: FormFieldKind.tags),
     FormFieldSpec(
       key: 'universeIds',
@@ -64,11 +71,7 @@ const Map<EntityType, List<FormFieldSpec>> entityFormSpecs = {
       kind: FormFieldKind.entityPickerMulti,
       referenceType: EntityType.universe,
     ),
-    FormFieldSpec(key: 'personality', label: 'Personality', kind: FormFieldKind.multiline),
-    FormFieldSpec(key: 'appearance', label: 'Appearance', kind: FormFieldKind.multiline),
-    FormFieldSpec(key: 'notes', label: 'Notes', kind: FormFieldKind.multiline),
-    FormFieldSpec(key: 'speechStyle', label: 'Speech style', kind: FormFieldKind.text),
-    FormFieldSpec(key: 'aiPrompt', label: 'AI prompt', kind: FormFieldKind.multiline),
+    FormFieldSpec(key: 'relationships', label: 'Relationships', kind: FormFieldKind.relationshipList),
   ],
   EntityType.characterVersion: [
     FormFieldSpec(
@@ -175,5 +178,8 @@ const Map<EntityType, List<FormFieldSpec>> entityFormSpecs = {
     FormFieldSpec(key: 'description', label: 'Description', kind: FormFieldKind.multiline),
     FormFieldSpec(key: 'notes', label: 'Notes', kind: FormFieldKind.multiline),
     FormFieldSpec(key: 'tags', label: 'Tags', kind: FormFieldKind.tags),
+  ],
+  EntityType.fieldDefinition: [
+    FormFieldSpec(key: 'name', label: 'Field name', kind: FormFieldKind.text, required: true),
   ],
 };

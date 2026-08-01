@@ -13,7 +13,8 @@ enum EntityType {
   location,
   item,
   species,
-  timelineEvent;
+  timelineEvent,
+  fieldDefinition;
 
   /// The name of the Firestore collection backing this entity type.
   ///
@@ -29,5 +30,6 @@ enum EntityType {
         EntityType.item => 'items',
         EntityType.species => 'species',
         EntityType.timelineEvent => 'timeline_events',
+        EntityType.fieldDefinition => 'field_definitions',
       };
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/character.dart';
 import '../../core/models/character_version.dart';
 import '../../core/models/entity_type.dart';
+import '../../core/models/field_definition.dart';
 import '../../core/models/item.dart';
 import '../../core/models/location.dart';
 import '../../core/models/organization.dart';
@@ -80,6 +81,14 @@ final timelineEventRepositoryProvider =
   return LocalEntityRepository<TimelineEvent>(
     ref.watch(entitiesDaoProvider),
     EntityType.timelineEvent,
+  );
+});
+
+final fieldDefinitionRepositoryProvider =
+    Provider<EntityRepository<FieldDefinition>>((ref) {
+  return LocalEntityRepository<FieldDefinition>(
+    ref.watch(entitiesDaoProvider),
+    EntityType.fieldDefinition,
   );
 });
 

@@ -9,6 +9,16 @@ part of 'character.dart';
 _Character _$CharacterFromJson(Map<String, dynamic> json) => _Character(
   id: json['id'] as String,
   name: json['name'] as String,
+  profession: json['profession'] as String?,
+  age: json['age'] as String?,
+  race: json['race'] as String?,
+  faction: json['faction'] as String?,
+  description: json['description'] as String?,
+  customFields:
+      (json['customFields'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const <String, String>{},
   aliases:
       (json['aliases'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
@@ -50,6 +60,12 @@ Map<String, dynamic> _$CharacterToJson(_Character instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
+      'profession': instance.profession,
+      'age': instance.age,
+      'race': instance.race,
+      'faction': instance.faction,
+      'description': instance.description,
+      'customFields': instance.customFields,
       'aliases': instance.aliases,
       'tags': instance.tags,
       'universeIds': instance.universeIds,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/character.dart';
 import '../../core/models/character_version.dart';
 import '../../core/models/entity_type.dart';
+import '../../core/models/field_definition.dart';
 import '../../core/models/item.dart';
 import '../../core/models/location.dart';
 import '../../core/models/organization.dart';
@@ -27,6 +28,7 @@ StoredEntity entityFromJson(EntityType type, Map<String, dynamic> json) =>
       EntityType.item => Item.fromJson(json),
       EntityType.species => Species.fromJson(json),
       EntityType.timelineEvent => TimelineEvent.fromJson(json),
+      EntityType.fieldDefinition => FieldDefinition.fromJson(json),
     };
 
 /// Saves [entity] through its typed repository provider.
@@ -52,6 +54,10 @@ Future<void> saveEntity(WidgetRef ref, StoredEntity entity) async {
       await ref.read(speciesRepositoryProvider).save(entity as Species);
     case EntityType.timelineEvent:
       await ref.read(timelineEventRepositoryProvider).save(entity as TimelineEvent);
+    case EntityType.fieldDefinition:
+      await ref
+          .read(fieldDefinitionRepositoryProvider)
+          .save(entity as FieldDefinition);
   }
 }
 
@@ -76,5 +82,7 @@ Future<void> deleteEntity(WidgetRef ref, EntityType type, String id) async {
       await ref.read(speciesRepositoryProvider).delete(id);
     case EntityType.timelineEvent:
       await ref.read(timelineEventRepositoryProvider).delete(id);
+    case EntityType.fieldDefinition:
+      await ref.read(fieldDefinitionRepositoryProvider).delete(id);
   }
 }

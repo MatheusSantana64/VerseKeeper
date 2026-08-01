@@ -36,6 +36,8 @@ Stream<List<StoredEntity>> _watchAll(Ref ref, EntityType type) => switch (type) 
       EntityType.species => ref.watch(speciesRepositoryProvider).watchAll(),
       EntityType.timelineEvent =>
         ref.watch(timelineEventRepositoryProvider).watchAll(),
+      EntityType.fieldDefinition =>
+        ref.watch(fieldDefinitionRepositoryProvider).watchAll(),
     };
 
 Future<int> _count(Ref ref, EntityType type) => switch (type) {
@@ -51,6 +53,8 @@ Future<int> _count(Ref ref, EntityType type) => switch (type) {
       EntityType.species => ref.watch(speciesRepositoryProvider).count(),
       EntityType.timelineEvent =>
         ref.watch(timelineEventRepositoryProvider).count(),
+      EntityType.fieldDefinition =>
+        ref.watch(fieldDefinitionRepositoryProvider).count(),
     };
 
 Stream<StoredEntity?> _watchById(Ref ref, EntityType type, String id) =>
@@ -68,4 +72,6 @@ Stream<StoredEntity?> _watchById(Ref ref, EntityType type, String id) =>
       EntityType.species => ref.watch(speciesRepositoryProvider).watchById(id),
       EntityType.timelineEvent =>
         ref.watch(timelineEventRepositoryProvider).watchById(id),
+      EntityType.fieldDefinition =>
+        ref.watch(fieldDefinitionRepositoryProvider).watchById(id),
     };

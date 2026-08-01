@@ -23,7 +23,7 @@ void main() {
 
     await tester.enterText(nameField(), 'Haru');
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Notes'),
+      find.widgetWithText(TextFormField, 'Description'),
       'Swordfighter of the north.',
     );
     await tester.tap(find.widgetWithText(FilledButton, 'Create'));

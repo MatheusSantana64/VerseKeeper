@@ -28,6 +28,26 @@ abstract class Character with _$Character implements StoredEntity {
     /// Primary display name, e.g. "Haru".
     required String name,
 
+    /// Occupation or role, e.g. "Swordfighter".
+    String? profession,
+
+    /// Free-form age, e.g. "34" or "Young adult".
+    String? age,
+
+    /// Free-form race/species label, e.g. "Human".
+    String? race,
+
+    /// Faction or group this character belongs to.
+    String? faction,
+
+    /// Long-form description.
+    String? description,
+
+    /// User-created custom field values, keyed by the id of the defining
+    /// [FieldDefinition]. Every character shares the same set of custom field
+    /// definitions, so all characters render the same extra inputs.
+    @Default(<String, String>{}) Map<String, String> customFields,
+
     /// Alternate names / nicknames.
     @Default(<String>[]) List<String> aliases,
 

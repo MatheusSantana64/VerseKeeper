@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models/entity_type.dart';
+import '../../core/models/relationship.dart';
 import '../../core/models/stored_entity.dart';
 import '../app_shell/app_drawer.dart';
 import 'entity_actions.dart';
@@ -32,6 +33,13 @@ class EntityDetailScreen extends ConsumerWidget {
         actions: entity.value == null
             ? null
             : [
+                if (type == EntityType.character)
+                  IconButton(
+                    tooltip: 'Manage character fields',
+                    icon: const Icon(Icons.playlist_add),
+                    onPressed: () =>
+                        context.go('/library/${EntityType.fieldDefinition.name}'),
+                  ),
                 IconButton(
                   tooltip: 'Edit',
                   icon: const Icon(Icons.edit_outlined),
@@ -95,16 +103,17 @@ class _NotFound extends StatelessWidget {
   }
 }
 
-class _EntityDetailBody extends StatelessWidget {
+class _EntityDetailBody extends ConsumerWidget {
   const _EntityDetailBody({required this.entity});
 
   final StoredEntity entity;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final config = configOf(entity.entityType);
     final theme = Theme.of(context);
     final json = entity.toJson();
+    final isCharacter = entity.entityType == EntityType.character;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -137,7 +146,7 @@ class _EntityDetailBody extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         for (final entry in json.entries)
-          if (_isFieldVisible(entry.key, entry.value))
+          if (_isFieldVisible(entry.key, entry.value, isCharacter))
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -156,6 +165,7 @@ class _EntityDetailBody extends StatelessWidget {
                 ],
               ),
             ),
+        if (isCharacter) ..._characterSections(context, ref, theme, json),
         const SizedBox(height: 16),
         Text(
           'Created ${formatValue(json['createdAt'])}\n'
@@ -167,8 +177,150 @@ class _EntityDetailBody extends StatelessWidget {
     );
   }
 
-  bool _isFieldVisible(String key, Object? value) {
+  bool _isFieldVisible(String key, Object? value, bool isCharacter) {
     if (_skipKeys.contains(key)) return false;
+    if (isCharacter && (key == 'customFields' || key == 'relationships')) {
+      return false;
+    }
     return formatValue(value).isNotEmpty;
+  }
+
+  List<Widget> _characterSections(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    Map<String, dynamic> json,
+  ) {
+    return [
+      if (json['relationships'] is List &&
+          (json['relationships'] as List).isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Text('Relationships', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        ..._relationshipTiles(ref, theme, json['relationships'] as List),
+      ],
+      if (json['customFields'] is Map &&
+          (json['customFields'] as Map).isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Text('Custom fields', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        ..._customFieldTiles(ref, theme, json['customFields'] as Map),
+      ],
+    ];
+  }
+
+  List<Widget> _relationshipTiles(
+    WidgetRef ref,
+    ThemeData theme,
+    List<dynamic> relationships,
+  ) {
+    final characters = ref.watch(entityListProvider(EntityType.character));
+    final byId = {
+      for (final character in characters.value ?? const <StoredEntity>[])
+        character.id: character,
+    };
+    final tiles = <Widget>[];
+    for (final rel in relationships) {
+      if (rel is Relationship) {
+        tiles.add(_RelationshipDetailTile(
+          targetId: rel.otherCharacterId,
+          typeName: rel.type.name,
+          customLabel: rel.customLabel,
+          notes: rel.notes,
+          byId: byId,
+        ));
+      } else if (rel is Map) {
+        tiles.add(_RelationshipDetailTile(
+          targetId: rel['otherCharacterId'] as String?,
+          typeName: rel['type']?.toString(),
+          customLabel: rel['customLabel'] as String?,
+          notes: rel['notes'] as String?,
+          byId: byId,
+        ));
+      }
+    }
+    return tiles;
+  }
+
+  List<Widget> _customFieldTiles(
+    WidgetRef ref,
+    ThemeData theme,
+    Map<dynamic, dynamic> customFields,
+  ) {
+    final defs = ref.watch(entityListProvider(EntityType.fieldDefinition));
+    final namesById = {
+      for (final definition in defs.value ?? const <StoredEntity>[])
+        definition.id: displayNameOf(definition),
+    };
+    return [
+      for (final entry in customFields.entries)
+        if (entry.value is String && (entry.value as String).trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  namesById[entry.key] ?? entry.key.toString(),
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: theme.colorScheme.outline),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  (entry.value as String).trim(),
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+    ];
+  }
+}
+
+class _RelationshipDetailTile extends StatelessWidget {
+  const _RelationshipDetailTile({
+    required this.targetId,
+    required this.typeName,
+    required this.customLabel,
+    required this.notes,
+    required this.byId,
+  });
+
+  final String? targetId;
+  final String? typeName;
+  final String? customLabel;
+  final String? notes;
+  final Map<String, StoredEntity> byId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final target = targetId == null ? null : byId[targetId];
+    final targetName =
+        target == null ? (targetId ?? '?') : displayNameOf(target);
+    final typeLabel = typeName ?? '';
+    final effectiveType =
+        typeLabel.isEmpty ? 'relationship' : prettyLabel(typeLabel);
+    final lines = [
+      '$effectiveType · $targetName',
+      if (customLabel != null && customLabel!.trim().isNotEmpty) customLabel!,
+      if (notes != null && notes!.trim().isNotEmpty) notes!,
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.people_outline, size: 20, color: theme.colorScheme.outline),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SelectableText(
+              lines.join('\n'),
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
