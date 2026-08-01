@@ -1,6 +1,11 @@
 # AGENTS.md
 
-VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with reusable characters. Clean architecture: `lib/core` (pure Dart: models, encryption, utils), `lib/data/local` (drift DB + DAOs), `lib/features` (Riverpod UI), `lib/shared` (theme). `lib/data/remote` + `lib/data/repositories` + `lib/data/sync` are **planned but do not exist yet** — do not assume them. Planned stack: drift (local SQLite, exists), Firestore + Storage (sync backend), go_router (declared in deps but not yet wired).
+VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with reusable characters. Clean architecture: `lib/core` (pure Dart: models, encryption, utils), `lib/data/local` (drift DB + DAOs), `lib/data/repositories` (feature-facing `EntityRepository<T>` interface + local impl), `lib/features` (Riverpod UI), `lib/shared` (theme). `lib/data/remote` + `lib/data/sync` are **planned but do not exist yet** — do not assume them. Planned stack: drift (local SQLite, exists), Firestore + Storage (sync backend), go_router (declared in deps but not yet wired).
+
+## Repositories
+
+- Features depend on typed `EntityRepository<T>` providers from `lib/data/repositories/repository_providers.dart` (`characterRepositoryProvider`, ...) and on `searchRepositoryProvider` — never on the drift DAO directly. The interface is sync-agnostic; the future sync engine will be wired behind it without changing feature code.
+- Cross-entity FTS5 search is separate (`SearchRepository`) because it spans all entity types.
 
 ## Local storage (drift document-store)
 

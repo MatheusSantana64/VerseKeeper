@@ -91,9 +91,15 @@ void main() {
 
     test('rejects a code with a corrupt checksum', () async {
       final code = await service.generateRecoveryCode();
-      final lastChar = code.substring(code.length - 1);
-      final replacement = lastChar == 'A' ? 'B' : 'A';
-      final corrupt = code.substring(0, code.length - 1) + replacement;
+      // Corrupt a fully-significant character in the middle of the code. The
+      // *last* character only carries padding bits (34-byte payload => 55
+      // base32 chars), so flipping it may leave the checksum intact.
+      final index = code.indexOf('-') + 1;
+      final original = code[index];
+      final replacement = original == 'Z' ? 'A' : 'Z';
+      final corrupt = code.substring(0, index) +
+          replacement +
+          code.substring(index + 1);
       await expectLater(
         service.recoverMasterKey(corrupt),
         throwsA(isA<FormatException>()),

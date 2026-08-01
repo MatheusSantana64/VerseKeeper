@@ -70,6 +70,15 @@ class EntitiesDao extends DatabaseAccessor<AppDatabase> with _$EntitiesDaoMixin 
     return row == null ? null : _decode<T>(type, row);
   }
 
+  /// Reactive single entity by id; emits `null` when missing/deleted.
+  Stream<T?> watchById<T extends StoredEntity>(EntityType type, String id) {
+    final codec = codecFor<T>(type);
+    return (select(entities)
+          ..where((e) => e.id.equals(id) & e.deleted.equals(false)))
+        .watchSingleOrNull()
+        .map((row) => row == null ? null : _decode<T>(type, row, codec));
+  }
+
   /// Reactive list of non-deleted entities, newest first.
   Stream<List<T>> watchAll<T extends StoredEntity>(EntityType type) {
     final codec = codecFor<T>(type);
