@@ -126,6 +126,11 @@ class _EntityDetailBody extends ConsumerWidget {
     final json = entity.toJson();
     final isCharacter = entity.entityType == EntityType.character;
     final isStory = entity.entityType == EntityType.story;
+    final universes = ref.watch(entityListProvider(EntityType.universe));
+    final universeById = {
+      for (final universe in universes.value ?? const <StoredEntity>[])
+        universe.id: universe,
+    };
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -171,7 +176,7 @@ class _EntityDetailBody extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   SelectableText(
-                    formatValue(entry.value),
+                    _fieldValue(entry.key, entry.value, universeById),
                     style: theme.textTheme.bodyMedium,
                   ),
                 ],
@@ -204,6 +209,27 @@ class _EntityDetailBody extends ConsumerWidget {
     }
     if (isStory && key == 'appearances') return false;
     return formatValue(value).isNotEmpty;
+  }
+
+  /// Formats a raw JSON field, resolving universe references to display names.
+  String _fieldValue(
+    String key,
+    Object? value,
+    Map<String, StoredEntity> universeById,
+  ) {
+    if (key == 'universeId' && value is String) {
+      final universe = universeById[value];
+      return universe == null ? value : displayNameOf(universe);
+    }
+    if (key == 'universeIds' && value is List) {
+      final names = [
+        for (final id in value)
+          universeById[id] == null ? id.toString() : displayNameOf(universeById[id]!),
+      ];
+      if (names.isEmpty) return '';
+      return names.join(', ');
+    }
+    return formatValue(value);
   }
 
   List<Widget> _characterSections(

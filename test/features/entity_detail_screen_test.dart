@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:versekeeper/core/models/character.dart';
+import 'package:versekeeper/core/models/story.dart';
+import 'package:versekeeper/core/models/universe.dart';
 
 import '../support/app_harness.dart';
 
@@ -27,6 +29,35 @@ void main() {
     expect(find.text('Calm and precise.'), findsOneWidget);
     expect(find.text('The North Wind'), findsOneWidget);
     expect(find.text('Character'), findsOneWidget);
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('resolves universe references to display names', (tester) async {
+    final database = await seededDatabase([
+      Universe(
+        id: 'univ-aetheria',
+        name: 'Aetheria',
+        createdAt: DateTime.utc(2024, 1, 1),
+        updatedAt: DateTime.utc(2024, 1, 1),
+      ),
+      Story(
+        id: 'story-crown',
+        title: 'Crown of Ashes',
+        universeId: 'univ-aetheria',
+        createdAt: DateTime.utc(2024, 1, 1),
+        updatedAt: DateTime.utc(2024, 1, 2),
+      ),
+    ]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      buildTestApp(database, initialLocation: '/library/story/story-crown'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aetheria'), findsOneWidget);
+    expect(find.text('univ-aetheria'), findsNothing);
 
     await unmountTestApp(tester);
   });
