@@ -303,6 +303,21 @@ class _EntityDetailBody extends ConsumerWidget {
     );
     return [
       const SizedBox(height: 8),
+      base.when(
+        data: (value) => value == null
+            ? const SizedBox.shrink()
+            : ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(configOf(EntityType.character).icon),
+                title: Text('Base character: ${displayNameOf(value)}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () =>
+                    context.go('/library/character/${value.id}'),
+              ),
+        loading: () => const LinearProgressIndicator(),
+        error: (error, _) => Text('Could not load base character: $error'),
+      ),
+      const SizedBox(height: 8),
       Text('Resolved snapshot', style: theme.textTheme.titleSmall),
       const SizedBox(height: 4),
       base.when(

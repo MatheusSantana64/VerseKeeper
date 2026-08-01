@@ -230,6 +230,9 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
 
     final specs = entityFormSpecs[widget.type]!;
     final title = _isEditing ? 'Edit ${config.singular}' : 'New ${config.singular}';
+    final inheritedHints = _inheritedHints();
+    final baseName = _baseCharacterName();
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -243,7 +246,20 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    for (final spec in specs) _buildField(spec),
+                    if (widget.type == EntityType.characterVersion &&
+                        inheritedHints.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          'Leave a field empty to inherit it from '
+                          '$baseName.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ),
+                    for (final spec in specs)
+                      _buildField(spec, hint: inheritedHints[spec.key] as String?),
                     if (widget.type == EntityType.character)
                       ..._buildCustomFields(),
                   ],
@@ -266,14 +282,59 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
     );
   }
 
-  Widget _buildField(FormFieldSpec spec) {
+  /// Inherited base-character values shown as hints when editing a version.
+  ///
+  /// Only fields a [CharacterVersion] can inherit are included, so users can
+  /// see exactly what they'll keep by leaving a field empty.
+  Map<String, dynamic> _inheritedHints() {
+    final characterId = _baseCharacterId();
+    if (characterId == null) return const {};
+    final base = ref
+        .watch(entityDetailProvider((type: EntityType.character, id: characterId)));
+    final json = base.value?.toJson();
+    if (json == null) return const {};
+    String? stringField(String key) {
+      final value = json[key];
+      if (value is String && value.trim().isNotEmpty) return value;
+      return null;
+    }
+
+    final tags = json['tags'];
+    return {
+      'personality': ?stringField('personality'),
+      'appearance': ?stringField('appearance'),
+      'notes': ?stringField('notes'),
+      'speechStyle': ?stringField('speechStyle'),
+      'aiPrompt': ?stringField('aiPrompt'),
+      if (tags is List && tags.isNotEmpty) 'tags': tags.join(', '),
+    };
+  }
+
+  String? _baseCharacterId() {
+    if (widget.type != EntityType.characterVersion) return null;
+    if (_isEditing) return _existingJson?['characterId'] as String?;
+    return widget.initialValues?['characterId'] as String?;
+  }
+
+  String _baseCharacterName() {
+    final characterId = _baseCharacterId();
+    if (characterId == null) return 'the base character';
+    final base = ref
+        .watch(entityDetailProvider((type: EntityType.character, id: characterId)));
+    return base.value == null ? 'the base character' : displayNameOf(base.value!);
+  }
+
+  Widget _buildField(FormFieldSpec spec, {String? hint}) {
     switch (spec.kind) {
       case FormFieldKind.text:
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: TextFormField(
             controller: _controllers[spec.key],
-            decoration: InputDecoration(labelText: spec.label),
+            decoration: InputDecoration(
+              labelText: spec.label,
+              hintText: hint == null ? null : 'Inherits: $hint',
+            ),
             textInputAction: TextInputAction.next,
             validator: _requiredTextValidator(spec),
           ),
@@ -283,7 +344,10 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
           padding: const EdgeInsets.only(bottom: 16),
           child: TextFormField(
             controller: _controllers[spec.key],
-            decoration: InputDecoration(labelText: spec.label),
+            decoration: InputDecoration(
+              labelText: spec.label,
+              hintText: hint == null ? null : 'Inherits: $hint',
+            ),
             maxLines: 4,
             validator: _requiredTextValidator(spec),
           ),
@@ -314,6 +378,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
           padding: const EdgeInsets.only(bottom: 16),
           child: _TagsInput(
             label: spec.label,
+            hint: hint,
             initial: _values[spec.key] as List<String>? ?? const [],
             onChanged: (tags) =>
                 setState(() => _values[spec.key] = List.of(tags)),
@@ -435,11 +500,13 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
 class _TagsInput extends StatefulWidget {
   const _TagsInput({
     required this.label,
+    this.hint,
     required this.initial,
     required this.onChanged,
   });
 
   final String label;
+  final String? hint;
   final List<String> initial;
   final ValueChanged<List<String>> onChanged;
 
@@ -488,6 +555,15 @@ class _TagsInputState extends State<_TagsInput> {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
+        if (widget.hint != null && _tags.isEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Inherits: ${widget.hint}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
