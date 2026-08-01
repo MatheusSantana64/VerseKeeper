@@ -66,13 +66,17 @@ class EntityDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final isFieldDefinition = type == EntityType.fieldDefinition;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete entity?'),
-        content: const Text(
-          'This removes the entity from your library. This action cannot be '
-          'undone.',
+        content: Text(
+          isFieldDefinition
+              ? 'This removes the custom field definition and its values from '
+                    'every character. This action cannot be undone.'
+              : 'This removes the entity from your library. This action cannot '
+                    'be undone.',
         ),
         actions: [
           TextButton(

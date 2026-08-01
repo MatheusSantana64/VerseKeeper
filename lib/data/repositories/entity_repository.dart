@@ -15,6 +15,9 @@ abstract interface class EntityRepository<T extends StoredEntity> {
   /// Reactive list of non-deleted entities, newest first.
   Stream<List<T>> watchAll();
 
+  /// One-shot snapshot of all non-deleted entities, newest first.
+  Future<List<T>> getAll();
+
   /// Reactive single entity; emits `null` while missing or deleted.
   Stream<T?> watchById(String id);
 
@@ -44,6 +47,9 @@ class LocalEntityRepository<T extends StoredEntity>
 
   @override
   Stream<List<T>> watchAll() => _dao.watchAll<T>(_type);
+
+  @override
+  Future<List<T>> getAll() => _dao.getAll<T>(_type);
 
   @override
   Stream<T?> watchById(String id) => _dao.watchById<T>(_type, id);

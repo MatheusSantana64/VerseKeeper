@@ -84,5 +84,25 @@ Future<void> deleteEntity(WidgetRef ref, EntityType type, String id) async {
       await ref.read(timelineEventRepositoryProvider).delete(id);
     case EntityType.fieldDefinition:
       await ref.read(fieldDefinitionRepositoryProvider).delete(id);
+      await _stripCustomFieldFromCharacters(ref, id);
+  }
+}
+
+/// Removes [definitionId] from every character's `customFields` so no orphaned
+/// values survive the deletion of their defining field.
+Future<void> _stripCustomFieldFromCharacters(
+  WidgetRef ref,
+  String definitionId,
+) async {
+  final repository = ref.read(characterRepositoryProvider);
+  final characters = await repository.getAll();
+  final now = DateTime.now().toUtc();
+  for (final character in characters) {
+    if (!character.customFields.containsKey(definitionId)) continue;
+    final customFields = Map<String, String>.of(character.customFields)
+      ..remove(definitionId);
+    await repository.save(
+      character.copyWith(customFields: customFields, updatedAt: now),
+    );
   }
 }

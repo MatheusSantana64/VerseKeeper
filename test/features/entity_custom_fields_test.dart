@@ -105,4 +105,46 @@ void main() {
 
     await unmountTestApp(tester);
   });
+
+  testWidgets('deleting a field definition strips its values from characters',
+      (tester) async {
+    final birthplace = FieldDefinition(
+      id: 'def-birthplace',
+      name: 'Birthplace',
+      createdAt: DateTime.utc(2024, 1, 1),
+      updatedAt: DateTime.utc(2024, 1, 1),
+    );
+    final haru = Character(
+      id: 'char-haru',
+      name: 'Haru',
+      customFields: {'def-birthplace': 'Eryndor'},
+      createdAt: DateTime.utc(2024, 1, 1),
+      updatedAt: DateTime.utc(2024, 1, 1),
+    );
+    final database = await seededDatabase([birthplace, haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      buildTestApp(
+        database,
+        initialLocation: '/library/fieldDefinition/def-birthplace',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      buildTestApp(database, initialLocation: '/library/character/char-haru'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Birthplace'), findsNothing);
+    expect(find.text('Eryndor'), findsNothing);
+
+    await unmountTestApp(tester);
+  });
 }

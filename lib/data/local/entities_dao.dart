@@ -89,6 +89,16 @@ class EntitiesDao extends DatabaseAccessor<AppDatabase> with _$EntitiesDaoMixin 
     return query.map((rows) => rows.map((r) => _decode<T>(type, r, codec)).toList());
   }
 
+  /// One-shot snapshot of all non-deleted entities, newest first.
+  Future<List<T>> getAll<T extends StoredEntity>(EntityType type) async {
+    final codec = codecFor<T>(type);
+    final rows = await (select(entities)
+          ..where((e) => e.type.equals(type.name) & e.deleted.equals(false))
+          ..orderBy([(e) => OrderingTerm.desc(e.updatedAt)]))
+        .get();
+    return rows.map((r) => _decode<T>(type, r, codec)).toList();
+  }
+
   /// One-shot snapshot of all non-deleted entity ids (used by sync to detect
   /// what exists locally).
   Future<List<String>> allIds(EntityType type) async {
