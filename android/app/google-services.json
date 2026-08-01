@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "601806799262",
+    "project_id": "versekeeper-julia",
+    "storage_bucket": "versekeeper-julia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601806799262:android:c2cd7b88fa8c1f1672968f",
+        "android_client_info": {
+          "package_name": "com.example.versekeeper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAO_NVwkvJDrefsSPhDabHILeunX1OkwEM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
