@@ -9,6 +9,7 @@ import '../../core/models/location.dart';
 import '../../core/models/organization.dart';
 import '../../core/models/species.dart';
 import '../../core/models/story.dart';
+import '../../core/models/story_appearance.dart';
 import '../../core/models/stored_entity.dart';
 import '../../core/models/timeline_event.dart';
 import '../../core/models/universe.dart';
@@ -66,8 +67,10 @@ Future<void> deleteEntity(WidgetRef ref, EntityType type, String id) async {
   switch (type) {
     case EntityType.character:
       await ref.read(characterRepositoryProvider).delete(id);
+      await _cascadeDeleteCharacter(ref, id);
     case EntityType.characterVersion:
       await ref.read(characterVersionRepositoryProvider).delete(id);
+      await _stripVersionFromAppearances(ref, id);
     case EntityType.story:
       await ref.read(storyRepositoryProvider).delete(id);
     case EntityType.universe:
@@ -85,6 +88,70 @@ Future<void> deleteEntity(WidgetRef ref, EntityType type, String id) async {
     case EntityType.fieldDefinition:
       await ref.read(fieldDefinitionRepositoryProvider).delete(id);
       await _stripCustomFieldFromCharacters(ref, id);
+  }
+}
+
+/// Deletes a character's versions and strips every reference to it from other
+/// characters and stories so no dangling ids survive.
+Future<void> _cascadeDeleteCharacter(
+  WidgetRef ref,
+  String characterId,
+) async {
+  final now = DateTime.now().toUtc();
+
+  final versionRepository = ref.read(characterVersionRepositoryProvider);
+  for (final version in await versionRepository.getAll()) {
+    if (version.characterId == characterId) {
+      await versionRepository.delete(version.id);
+    }
+  }
+
+  final characterRepository = ref.read(characterRepositoryProvider);
+  for (final character in await characterRepository.getAll()) {
+    final kept = character.relationships
+        .where((relationship) => relationship.otherCharacterId != characterId)
+        .toList();
+    if (kept.length == character.relationships.length) continue;
+    await characterRepository.save(
+      character.copyWith(relationships: kept, updatedAt: now),
+    );
+  }
+
+  final storyRepository = ref.read(storyRepositoryProvider);
+  for (final story in await storyRepository.getAll()) {
+    final kept = story.appearances
+        .where((appearance) => appearance.characterId != characterId)
+        .toList();
+    if (kept.length == story.appearances.length) continue;
+    await storyRepository.save(
+      story.copyWith(appearances: kept, updatedAt: now),
+    );
+  }
+}
+
+/// Detaches a deleted version from every story appearance that pinned it, so
+/// the appearance falls back to the base character.
+Future<void> _stripVersionFromAppearances(
+  WidgetRef ref,
+  String versionId,
+) async {
+  final now = DateTime.now().toUtc();
+  final storyRepository = ref.read(storyRepositoryProvider);
+  for (final story in await storyRepository.getAll()) {
+    final appearances = <StoryAppearance>[];
+    var changed = false;
+    for (final appearance in story.appearances) {
+      if (appearance.versionId == versionId) {
+        changed = true;
+        appearances.add(appearance.copyWith(versionId: null));
+      } else {
+        appearances.add(appearance);
+      }
+    }
+    if (!changed) continue;
+    await storyRepository.save(
+      story.copyWith(appearances: appearances, updatedAt: now),
+    );
   }
 }
 
