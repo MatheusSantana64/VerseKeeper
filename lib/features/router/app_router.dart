@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/entity_type.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../entity/entity_detail_screen.dart';
+import '../entity/entity_edit_screen.dart';
 import '../entity/entity_list_screen.dart';
 import '../search/search_screen.dart';
 
@@ -16,7 +17,9 @@ final goRouterProvider = Provider<GoRouter>((ref) => buildAppRouter());
 ///  * `/`                     — dashboard
 ///  * `/search`               — cross-entity search
 ///  * `/library/:type`        — entity list for one type
+///  * `/library/:type/new`    — create entity
 ///  * `/library/:type/:id`    — read-only entity detail
+///  * `/library/:type/:id/edit` — edit entity
 GoRouter buildAppRouter({String initialLocation = '/'}) {
   return GoRouter(
     initialLocation: initialLocation,
@@ -47,12 +50,29 @@ GoRouter buildAppRouter({String initialLocation = '/'}) {
         ),
         routes: [
           GoRoute(
+            path: 'new',
+            name: 'entityCreate',
+            builder: (context, state) => EntityEditScreen(
+              type: EntityType.values.byName(state.pathParameters['type']!),
+            ),
+          ),
+          GoRoute(
             path: ':id',
             name: 'entityDetail',
             builder: (context, state) => EntityDetailScreen(
               type: EntityType.values.byName(state.pathParameters['type']!),
               id: state.pathParameters['id']!,
             ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                name: 'entityEdit',
+                builder: (context, state) => EntityEditScreen(
+                  type: EntityType.values.byName(state.pathParameters['type']!),
+                  id: state.pathParameters['id']!,
+                ),
+              ),
+            ],
           ),
         ],
       ),

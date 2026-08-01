@@ -23,6 +23,11 @@ class EntityListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(config.label)),
       drawer: const AppDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.go('/library/${type.name}/new'),
+        tooltip: 'New ${config.singular.toLowerCase()}',
+        child: const Icon(Icons.add),
+      ),
       body: entities.when(
         data: (list) => list.isEmpty
             ? _EmptyState(config: config)

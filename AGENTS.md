@@ -13,6 +13,13 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 - Screens must not depend on `lib/data/local` (clean arch: features → repositories only). `lib/features/entity/entity_library_providers.dart` provides generic `StreamProvider.family`/`FutureProvider.family` bridges (`entityListProvider`, `entityCountProvider`, `entityDetailProvider`) that switch over the typed repo providers; `entity_type_config.dart` maps `EntityType` → label/icon; `entity_display.dart` derives display names/previews from `toJson()` (no codec dependency).
 - New entity types need: a config entry in `entity_type_config.dart`, plus (if promoted in the drawer/dashboard) a slot in `primaryEntityTypes`.
 
+## Editing (Phase 5)
+
+- Create/edit uses a spec-driven generic form. `lib/features/entity/entity_form_spec.dart` declares the editable fields per type (`FormFieldKind`: text/multiline/tags/number/entityPicker/entityPickerMulti — list-valued refs like `Character.universeIds` must use `entityPickerMulti`, never `entityPicker`). `entity_edit_screen.dart` builds a model from form values + generated `id`/timestamps via `entityFromJson` in `entity_actions.dart` (JSON→model and save/delete switches over the typed repos — mirrors the `_watchAll` switch pattern). Nested structures (relationships, story appearances, images, version management) are intentionally not editable yet.
+- `fromJson` tolerates missing keys (json_serializable emits defaults), so create JSON only needs `id`/`createdAt`/`updatedAt` + the required name/title field + the edited values.
+- Routes: `/library/:type/new` (create, declared before `:id` so `new` never matches an id) and `/library/:type/:id/edit`.
+- Widget tests that fill a long form: set `tester.view.physicalSize` to a tall viewport — `scrollUntilVisible` is unreliable here because every `TextField` contributes a `Scrollable` (multi-match).
+
 ## Local storage (drift document-store)
 
 - One `entities` table holds every entity as a JSON blob (`data`) plus denormalized `name`, `type`, timestamps, and a `deleted` tombstone. Nested structures (relationships, story appearances, images) live inside the JSON — do not add per-entity or join tables.

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/entity_type.dart';
 import '../../core/models/stored_entity.dart';
 import '../app_shell/app_drawer.dart';
+import 'entity_actions.dart';
 import 'entity_display.dart';
 import 'entity_library_providers.dart';
 import 'entity_type_config.dart';
@@ -27,6 +29,20 @@ class EntityDetailScreen extends ConsumerWidget {
         title: Text(entity.value == null
             ? config.singular
             : displayNameOf(entity.value!)),
+        actions: entity.value == null
+            ? null
+            : [
+                IconButton(
+                  tooltip: 'Edit',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => context.go('/library/$type/${entity.value!.id}/edit'),
+                ),
+                IconButton(
+                  tooltip: 'Delete',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
+              ],
       ),
       drawer: const AppDrawer(),
       body: entity.when(
@@ -36,6 +52,32 @@ class EntityDetailScreen extends ConsumerWidget {
         error: (error, _) => Center(child: Text('Could not load: $error')),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete entity?'),
+        content: const Text(
+          'This removes the entity from your library. This action cannot be '
+          'undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await deleteEntity(ref, type, id);
+    if (context.mounted) context.go('/library/${type.name}');
   }
 }
 
