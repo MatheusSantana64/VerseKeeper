@@ -1,11 +1,17 @@
 # AGENTS.md
 
-VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with reusable characters. Clean architecture: `lib/core` (pure Dart: models, encryption, utils), `lib/data/local` (drift DB + DAOs), `lib/data/repositories` (feature-facing `EntityRepository<T>` interface + local impl), `lib/features` (Riverpod UI), `lib/shared` (theme). `lib/data/remote` + `lib/data/sync` are **planned but do not exist yet** — do not assume them. Planned stack: drift (local SQLite, exists), Firestore + Storage (sync backend), go_router (declared in deps but not yet wired).
+VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with reusable characters. Clean architecture: `lib/core` (pure Dart: models, encryption, utils), `lib/data/local` (drift DB + DAOs), `lib/data/repositories` (feature-facing `EntityRepository<T>` interface + local impl), `lib/features` (Riverpod UI + go_router), `lib/shared` (theme). `lib/data/remote` + `lib/data/sync` are **planned but do not exist yet** — do not assume them. Planned stack: drift (local SQLite, exists), Firestore + Storage (sync backend), go_router (wired, see below).
 
 ## Repositories
 
 - Features depend on typed `EntityRepository<T>` providers from `lib/data/repositories/repository_providers.dart` (`characterRepositoryProvider`, ...) and on `searchRepositoryProvider` — never on the drift DAO directly. The interface is sync-agnostic; the future sync engine will be wired behind it without changing feature code.
 - Cross-entity FTS5 search is separate (`SearchRepository`) because it spans all entity types.
+
+## UI (features + routing)
+
+- `lib/features/router/app_router.dart` builds the go_router table (`goRouterProvider`): `/` dashboard, `/search`, `/library/:type`, `/library/:type/:id`. Screens use `AppDrawer` (`lib/features/app_shell/app_drawer.dart`) for navigation.
+- Screens must not depend on `lib/data/local` (clean arch: features → repositories only). `lib/features/entity/entity_library_providers.dart` provides generic `StreamProvider.family`/`FutureProvider.family` bridges (`entityListProvider`, `entityCountProvider`, `entityDetailProvider`) that switch over the typed repo providers; `entity_type_config.dart` maps `EntityType` → label/icon; `entity_display.dart` derives display names/previews from `toJson()` (no codec dependency).
+- New entity types need: a config entry in `entity_type_config.dart`, plus (if promoted in the drawer/dashboard) a slot in `primaryEntityTypes`.
 
 ## Local storage (drift document-store)
 
@@ -45,5 +51,6 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 
 - `test/support/fakes.dart` provides `InMemoryKeyStorage`; widget tests must override `keyStorageProvider` with it (real secure storage throws `MissingPluginException` in tests).
 - Widget tests pump `VerseKeeperApp` inside `ProviderScope` with overrides — Firebase is **not** initialized in tests, so nothing under test may require it.
+- `test/support/app_harness.dart` provides `seededDatabase(...)`, `buildTestApp(...)` (overrides `databaseProvider` + `goRouterProvider` so a test can start at any route) and `unmountTestApp(...)`. **Drift schedules a `Timer.run` when a stream is cancelled**; end any widget test that reads drift streams with `unmountTestApp(tester)` to fire it, otherwise the "Timer is still pending" invariant fails.
 - Encryption/base32/model tests are pure Dart; run anywhere without platform setup.
 - DB tests use `AppDatabase.forTesting()` (in-memory). `package:sqlite3` v3 bundles the native library via Dart native assets, so no extra setup is needed — but the app's `databaseProvider` must be overridden in any widget test that touches the DB.

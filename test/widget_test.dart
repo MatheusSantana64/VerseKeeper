@@ -1,23 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:versekeeper/app.dart';
-import 'package:versekeeper/core/encryption/encryption_providers.dart';
-
-import 'support/fakes.dart';
+import 'support/app_harness.dart';
 
 void main() {
-  testWidgets('renders the home screen', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          keyStorageProvider.overrideWithValue(InMemoryKeyStorage()),
-        ],
-        child: const VerseKeeperApp(),
-      ),
-    );
+  testWidgets('renders the dashboard with library counts', (tester) async {
+    final database = await seededDatabase([]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database));
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to VerseKeeper'), findsOneWidget);
+    expect(find.text('Your library'), findsOneWidget);
+    expect(find.text('Characters'), findsOneWidget);
+    expect(find.text('Stories'), findsOneWidget);
+    expect(find.text('VerseKeeper'), findsWidgets);
+    expect(
+      find.text('First run: encryption will be provisioned on first save'),
+      findsOneWidget,
+    );
+
+    await unmountTestApp(tester);
   });
 }
