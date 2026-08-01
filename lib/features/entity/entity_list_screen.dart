@@ -40,7 +40,7 @@ class EntityListScreen extends ConsumerWidget {
       ),
       body: entities.when(
         data: (list) => list.isEmpty
-            ? _EmptyState(config: config)
+            ? _EmptyState(type: type)
             : ListView.builder(
                 itemCount: list.length,
                 itemBuilder: (context, index) =>
@@ -83,13 +83,14 @@ class _EntityTile extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.config});
+  const _EmptyState({required this.type});
 
-  final EntityTypeConfig config;
+  final EntityType type;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final config = configOf(type);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -104,10 +105,16 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'This library is empty. Editing will arrive in a later '
-              'version.',
+              'Create your first ${config.singular.toLowerCase()} to get '
+              'started.',
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => context.go('/library/${type.name}/new'),
+              icon: const Icon(Icons.add),
+              label: Text('New ${config.singular.toLowerCase()}'),
             ),
           ],
         ),
