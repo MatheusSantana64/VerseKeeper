@@ -19,6 +19,9 @@ final coverImagePickerProvider =
 /// Defaults to a fixed [size] square (image cropped to fill it). Pass
 /// [fixedHeight] instead to show the whole photo: the width then follows the
 /// image's aspect ratio and nothing is cropped.
+///
+/// When a photo is set and [viewEnabled] is true, tapping the image opens a
+/// fullscreen preview that supports pinch-to-zoom and panning.
 class CoverImage extends ConsumerWidget {
   const CoverImage({
     super.key,
@@ -27,6 +30,7 @@ class CoverImage extends ConsumerWidget {
     this.fixedHeight,
     this.borderRadius = 8,
     this.icon = Icons.person_outline,
+    this.viewEnabled = true,
   });
 
   final String? imageId;
@@ -34,6 +38,7 @@ class CoverImage extends ConsumerWidget {
   final double? fixedHeight;
   final double borderRadius;
   final IconData icon;
+  final bool viewEnabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,7 +61,7 @@ class CoverImage extends ConsumerWidget {
       builder: (context, snapshot) {
         final path = snapshot.data;
         if (path == null) return placeholder();
-        return ClipRRect(
+        final image = ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
           child: Image.file(
             File(path),
@@ -66,7 +71,45 @@ class CoverImage extends ConsumerWidget {
             errorBuilder: (_, _, _) => placeholder(),
           ),
         );
+        if (!viewEnabled) return image;
+        return GestureDetector(
+          onTap: () => showCoverImagePreview(context, path),
+          child: image,
+        );
       },
     );
   }
+}
+
+/// Opens a fullscreen, pinch-to-zoom preview of the image at [path].
+Future<void> showCoverImagePreview(BuildContext context, String path) {
+  return showDialog<void>(
+    context: context,
+    builder: (context) => Dialog.fullscreen(
+      backgroundColor: Colors.black,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              maxScale: 6,
+              child: Center(
+                child: Image.file(File(path), fit: BoxFit.contain),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: SafeArea(
+              child: IconButton(
+                tooltip: 'Close',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
