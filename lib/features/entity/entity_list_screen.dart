@@ -130,7 +130,7 @@ class _CharacterListTile extends StatelessWidget {
             children: [
               CoverImage(
                 imageId: json['coverImageId'] as String?,
-                size: 56,
+                fixedHeight: 64,
                 borderRadius: 8,
                 icon: config.icon,
               ),
