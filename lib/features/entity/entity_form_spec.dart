@@ -32,8 +32,9 @@ enum FormFieldKind {
 ///
 /// The key matches the JSON field name in the model so values can be read from
 /// and written back to `toJson()`. Complex nested structures (relationships,
-/// story appearances, image lists, version management) are intentionally not
-/// exposed here; they are edited in later phases.
+/// story appearances, version management) are not spec-driven but have their
+/// own editors; the character main photo is a dedicated field rendered by
+/// `_CoverImageField` in the edit screen and is not part of this spec.
 class FormFieldSpec {
   const FormFieldSpec({
     required this.key,

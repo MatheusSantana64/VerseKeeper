@@ -11,6 +11,7 @@ import '../../core/models/story_appearance.dart';
 import '../app_shell/app_drawer.dart';
 import 'entity_actions.dart';
 import 'entity_display.dart';
+import 'entity_image_providers.dart';
 import 'entity_library_providers.dart';
 import 'entity_type_config.dart';
 
@@ -146,10 +147,11 @@ class _EntityDetailBody extends ConsumerWidget {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Icon(config.icon, color: theme.colorScheme.onPrimaryContainer),
+            CoverImage(
+              imageId: isCharacter ? json['coverImageId'] as String? : null,
+              size: 56,
+              borderRadius: 28,
+              icon: config.icon,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -382,9 +384,18 @@ class _EntityDetailBody extends ConsumerWidget {
             if (resolved.relationships.isNotEmpty)
               'Relationships: ${resolved.relationships.length}',
           ];
-          return SelectableText(
-            rows.join('\n'),
-            style: theme.textTheme.bodyMedium,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (resolved.coverImageId != null) ...[
+                CoverImage(imageId: resolved.coverImageId, size: 96),
+                const SizedBox(height: 12),
+              ],
+              SelectableText(
+                rows.join('\n'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
           );
         },
         loading: () => const LinearProgressIndicator(),

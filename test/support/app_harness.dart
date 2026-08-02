@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 
 import 'package:versekeeper/app.dart';
 import 'package:versekeeper/core/encryption/encryption_providers.dart';
@@ -23,14 +24,20 @@ Future<AppDatabase> seededDatabase(List<StoredEntity> entities) async {
 }
 
 /// Pumps the full app with a real router (starting at [initialLocation]) and
-/// overridden storage/database. Caller owns closing [database].
-Widget buildTestApp(AppDatabase database, {String initialLocation = '/'}) {
+/// overridden storage/database. Caller owns closing [database]. Extra
+/// [overrides] are layered on top (e.g. fake image store/picker).
+Widget buildTestApp(
+  AppDatabase database, {
+  String initialLocation = '/',
+  List<Override> overrides = const [],
+}) {
   return ProviderScope(
     overrides: [
       keyStorageProvider.overrideWithValue(InMemoryKeyStorage()),
       databaseProvider.overrideWithValue(database),
       goRouterProvider
           .overrideWithValue(buildAppRouter(initialLocation: initialLocation)),
+      ...overrides,
     ],
     child: const VerseKeeperApp(),
   );

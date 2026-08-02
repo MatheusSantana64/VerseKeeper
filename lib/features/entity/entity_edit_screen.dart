@@ -11,15 +11,17 @@ import '../app_shell/app_drawer.dart';
 import 'entity_actions.dart';
 import 'entity_display.dart';
 import 'entity_form_spec.dart';
+import 'entity_image_providers.dart';
 import 'entity_library_providers.dart';
 import 'entity_type_config.dart';
 
 /// Generic create/edit form for one entity type.
 ///
 /// With a null [id] the screen creates a new entity; otherwise it loads and
-/// edits the existing one. Fields come from [entityFormSpecs]; complex nested
-/// structures are not editable yet. [initialValues] pre-fills fields when
-/// creating (e.g. a pre-selected character when creating a version).
+/// edits the existing one. Fields come from [entityFormSpecs]; nested
+/// structures and the character main photo have dedicated editors.
+/// [initialValues] pre-fills fields when creating (e.g. a pre-selected
+/// character when creating a version).
 class EntityEditScreen extends ConsumerStatefulWidget {
   const EntityEditScreen({
     super.key,
@@ -46,6 +48,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
 
   bool _prefilled = false;
   Map<String, dynamic>? _existingJson;
+  String? _coverImageId;
 
   bool get _isEditing => widget.id != null;
 
@@ -81,6 +84,9 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
 
   void _prefill(StoredEntity entity) {
     final json = entity.toJson();
+    if (widget.type == EntityType.character) {
+      _coverImageId = json['coverImageId'] as String?;
+    }
     for (final spec in entityFormSpecs[widget.type]!) {
       final raw = json[spec.key];
       switch (spec.kind) {
@@ -170,6 +176,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
           if (entry.value.text.trim().isNotEmpty)
             entry.key: entry.value.text.trim(),
       };
+      values['coverImageId'] = _coverImageId;
     }
     final now = DateTime.now().toUtc().toIso8601String();
     final json = <String, dynamic>{
@@ -261,6 +268,8 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    if (widget.type == EntityType.character)
+                      ..._buildCoverImageSection(),
                     if (widget.type == EntityType.characterVersion &&
                         inheritedHints.isNotEmpty)
                       Padding(
@@ -441,6 +450,20 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
     }
   }
 
+  /// Renders the character's main-photo picker at the top of the form.
+  List<Widget> _buildCoverImageSection() {
+    return [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _CoverImageField(
+          imageId: _coverImageId,
+          onChanged: (id) => setState(() => _coverImageId = id),
+          onRemoved: () => setState(() => _coverImageId = null),
+        ),
+      ),
+    ];
+  }
+
   /// Renders one editable input per defined custom field, creating and
   /// pre-filling the backing controller lazily from the existing JSON.
   List<Widget> _buildCustomFields() {
@@ -534,6 +557,78 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
       }
       return null;
     };
+  }
+}
+
+/// Main-photo picker for the character form: pick, change, or remove a stored
+/// cover image.
+class _CoverImageField extends ConsumerWidget {
+  const _CoverImageField({
+    required this.imageId,
+    required this.onChanged,
+    required this.onRemoved,
+  });
+
+  final String? imageId;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onRemoved;
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final bytes = await ref.read(coverImagePickerProvider).pick();
+    if (bytes == null || !context.mounted) return;
+    final store = ref.read(imageStoreProvider);
+    if (imageId != null) await store.deleteImage(imageId!);
+    final id = await store.saveImage(
+      'cover_${DateTime.now().millisecondsSinceEpoch}',
+      bytes,
+    );
+    if (!context.mounted) return;
+    onChanged(id);
+  }
+
+  Future<void> _remove(WidgetRef ref) async {
+    final store = ref.read(imageStoreProvider);
+    if (imageId != null) await store.deleteImage(imageId!);
+    onRemoved();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Main photo',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            CoverImage(imageId: imageId, size: 72),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _pick(context, ref),
+                  icon: const Icon(Icons.photo_library_outlined, size: 18),
+                  label: Text(imageId == null ? 'Add photo' : 'Change photo'),
+                ),
+                if (imageId != null)
+                  TextButton.icon(
+                    onPressed: () => _remove(ref),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Remove'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 

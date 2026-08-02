@@ -6,6 +6,7 @@ import '../../core/models/entity_type.dart';
 import '../../core/models/stored_entity.dart';
 import '../app_shell/app_drawer.dart';
 import 'entity_display.dart';
+import 'entity_image_providers.dart';
 import 'entity_library_providers.dart';
 import 'entity_type_config.dart';
 
@@ -174,14 +175,11 @@ class _CharacterListTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    child: Icon(
-                      config.icon,
-                      size: 20,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
+                  CoverImage(
+                    imageId: json['coverImageId'] as String?,
+                    size: 40,
+                    borderRadius: 20,
+                    icon: config.icon,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
