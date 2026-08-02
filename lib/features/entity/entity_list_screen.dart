@@ -168,10 +168,11 @@ class _CompactCharacterCard extends StatelessWidget {
 
     final title = StringBuffer(displayNameOf(entity));
     if (age != null) title.write(' (${age}yo)');
-    if (profession != null) title.write(' - $profession');
 
     final titleStyle =
         theme.textTheme.titleMedium?.copyWith(fontSize: settings.fontSize + 2.0);
+    final professionStyle = theme.textTheme.bodyMedium
+        ?.copyWith(fontSize: settings.fontSize.toDouble());
     final bodyStyle =
         theme.textTheme.bodySmall?.copyWith(fontSize: settings.fontSize - 1.0);
     final photoHeight = (settings.cardHeight - 12).toDouble();
@@ -187,7 +188,7 @@ class _CompactCharacterCard extends StatelessWidget {
           padding: const EdgeInsets.all(6),
           child: Row(
             children: [
-              if (settings.wholeImage)
+              if (settings.showWholeImage)
                 Flexible(
                   child: CoverImage(
                     imageId: json['coverImageId'] as String?,
@@ -219,6 +220,15 @@ class _CompactCharacterCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (profession != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        profession,
+                        style: professionStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     if (description != null) ...[
                       const SizedBox(height: 2),
                       Text(
@@ -275,7 +285,7 @@ class _PortraitCharacterCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (settings.wholeImage)
+              if (settings.showWholeImage)
                 Flexible(
                   child: CoverImage(
                     imageId: json['coverImageId'] as String?,
@@ -356,7 +366,9 @@ class _GalleryCharacterCard extends StatelessWidget {
               child: CoverImage(
                 imageId: json['coverImageId'] as String?,
                 fill: true,
-                fillFit: settings.wholeImage ? BoxFit.contain : BoxFit.cover,
+                fillFit: settings.showWholeImage
+                    ? BoxFit.contain
+                    : BoxFit.cover,
                 borderRadius: 0,
                 icon: config.icon,
               ),

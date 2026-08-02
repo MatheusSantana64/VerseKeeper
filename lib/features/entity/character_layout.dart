@@ -1,6 +1,17 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/models/character.dart';
+import '../../core/models/entity_type.dart';
+import 'entity_image_providers.dart';
+import 'entity_library_providers.dart';
+
+/// Aspect ratio (width / height) assumed when no photo can be measured.
+const double defaultAspect = 4 / 3;
 
 /// The three character card layouts available in the list screen.
 enum CharacterLayoutType {
@@ -37,6 +48,7 @@ class CharacterLayoutSettings {
     this.cardHeight = 120,
     this.fontSize = 14,
     this.wholeImage = true,
+    this.lockAspect = false,
   });
 
   /// Card width in logical pixels.
@@ -52,17 +64,27 @@ class CharacterLayoutSettings {
   /// never cropped); when false it fills the photo box and may be cropped.
   final bool wholeImage;
 
+  /// When true the card width and height stay locked to the reference
+  /// photo's proportions: moving one slider adjusts the other.
+  final bool lockAspect;
+
+  /// Whether the photo is rendered whole (never cropped): either via the
+  /// whole-image toggle or because the size is locked to the photo.
+  bool get showWholeImage => wholeImage || lockAspect;
+
   CharacterLayoutSettings copyWith({
     int? cardWidth,
     int? cardHeight,
     int? fontSize,
     bool? wholeImage,
+    bool? lockAspect,
   }) {
     return CharacterLayoutSettings(
       cardWidth: cardWidth ?? this.cardWidth,
       cardHeight: cardHeight ?? this.cardHeight,
       fontSize: fontSize ?? this.fontSize,
       wholeImage: wholeImage ?? this.wholeImage,
+      lockAspect: lockAspect ?? this.lockAspect,
     );
   }
 }
@@ -105,6 +127,32 @@ final sharedPreferencesProvider = FutureProvider<SharedPreferences>(
   (ref) => SharedPreferences.getInstance(),
 );
 
+/// Width/height ratio of the first character cover photo in the library.
+/// Used by the aspect lock so a card can be sized to match a photo's shape.
+/// Returns null when no photo can be measured (callers fall back to
+/// [defaultAspect]); real file decoding never completes under widget-test
+/// fake async, so tests should override this provider to stay deterministic.
+final layoutImageAspectProvider = FutureProvider<double?>((ref) async {
+  final characters =
+      await ref.watch(entityListProvider(EntityType.character).future);
+  final store = ref.watch(imageStoreProvider);
+  for (final entity in characters) {
+    if (entity is! Character) continue;
+    final imageId = entity.coverImageId;
+    if (imageId == null) continue;
+    final path = await store.pathFor(imageId);
+    if (path == null) continue;
+    final bytes = await File(path).readAsBytes();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final width = frame.image.width;
+    final height = frame.image.height;
+    if (height == 0) continue;
+    return width / height;
+  }
+  return null;
+});
+
 class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
   @override
   CharacterLayout build() {
@@ -126,6 +174,8 @@ class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
             .clamp(10, 22),
         wholeImage:
             prefs.getBool('charWhole_${t.name}') ?? defaults.wholeImage,
+        lockAspect:
+            prefs.getBool('charLock_${t.name}') ?? defaults.lockAspect,
       );
     }
     return CharacterLayout(type: type, settings: settings);
@@ -143,6 +193,7 @@ class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
         await prefs.setInt('charH_$name', s.cardHeight);
         await prefs.setInt('charFont_$name', s.fontSize);
         await prefs.setBool('charWhole_$name', s.wholeImage);
+        await prefs.setBool('charLock_$name', s.lockAspect);
       }
     } catch (_) {
       // Persistence unavailable (e.g. widget tests): keep the in-memory value.
@@ -165,119 +216,157 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
 
   return showDialog<void>(
     context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) {
-        final s = pending[pendingType]!;
-        return AlertDialog(
-          title: const Text('Character layout'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Layout',
-                  style: Theme.of(context).textTheme.titleSmall,
+    builder: (context) => Consumer(
+      builder: (context, ref, _) {
+        final aspect =
+            ref.watch(layoutImageAspectProvider).value ?? defaultAspect;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final s = pending[pendingType]!;
+            return AlertDialog(
+              title: const Text('Character layout'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Layout',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    RadioGroup<CharacterLayoutType>(
+                      groupValue: pendingType,
+                      onChanged: (value) {
+                        if (value != null) setState(() => pendingType = value);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final type in CharacterLayoutType.values)
+                            RadioListTile<CharacterLayoutType>(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(type.label),
+                              subtitle: Text(type.description),
+                              value: type,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 24),
+                    _layoutSlider(
+                      context,
+                      setState,
+                      key: const ValueKey('cardWidthSlider'),
+                      label: 'Card width',
+                      value: s.cardWidth,
+                      min: 160,
+                      max: 800,
+                      step: 20,
+                      unit: 'px',
+                      onChanged: (v) => setState(() {
+                        var next =
+                            pending[pendingType]!.copyWith(cardWidth: v);
+                        if (next.lockAspect) {
+                          next = next.copyWith(
+                            cardHeight: (v / aspect).round().clamp(90, 360),
+                          );
+                        }
+                        pending[pendingType] = next;
+                      }),
+                    ),
+                    _layoutSlider(
+                      context,
+                      setState,
+                      key: const ValueKey('cardHeightSlider'),
+                      label: 'Card height',
+                      value: s.cardHeight,
+                      min: 90,
+                      max: 360,
+                      step: 15,
+                      unit: 'px',
+                      onChanged: (v) => setState(() {
+                        var next =
+                            pending[pendingType]!.copyWith(cardHeight: v);
+                        if (next.lockAspect) {
+                          next = next.copyWith(
+                            cardWidth: (v * aspect).round().clamp(160, 800),
+                          );
+                        }
+                        pending[pendingType] = next;
+                      }),
+                    ),
+                    _layoutSlider(
+                      context,
+                      setState,
+                      key: const ValueKey('fontSizeSlider'),
+                      label: 'Font size',
+                      value: s.fontSize,
+                      min: 10,
+                      max: 22,
+                      step: 1,
+                      unit: 'pt',
+                      onChanged: (v) => setState(() {
+                        pending[pendingType] =
+                            pending[pendingType]!.copyWith(fontSize: v);
+                      }),
+                    ),
+                    const Divider(height: 24),
+                    CheckboxListTile(
+                      key: const ValueKey('wholeImageCheckbox'),
+                      value: s.wholeImage,
+                      onChanged: (v) => setState(() {
+                        pending[pendingType] = pending[pendingType]!
+                            .copyWith(wholeImage: v ?? false);
+                      }),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Always show the whole image'),
+                      subtitle: const Text(
+                        'Scale the photo to fit the card instead of cropping it',
+                      ),
+                    ),
+                    CheckboxListTile(
+                      key: const ValueKey('aspectLockCheckbox'),
+                      value: s.lockAspect,
+                      onChanged: (v) => setState(() {
+                        pending[pendingType] = pending[pendingType]!.copyWith(
+                          lockAspect: v ?? false,
+                          wholeImage: (v ?? false)
+                              ? true
+                              : pending[pendingType]!.wholeImage,
+                        );
+                      }),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text("Lock size to the photo's proportions"),
+                      subtitle: const Text(
+                        'Changing width or height keeps the card shaped like the photo',
+                      ),
+                    ),
+                  ],
                 ),
-                RadioGroup<CharacterLayoutType>(
-                  groupValue: pendingType,
-                  onChanged: (value) {
-                    if (value != null) setState(() => pendingType = value);
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    ref.read(characterLayoutProvider.notifier).setLayout(
+                          CharacterLayout(
+                              type: pendingType, settings: pending),
+                        );
+                    Navigator.of(context).pop();
                   },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final type in CharacterLayoutType.values)
-                        RadioListTile<CharacterLayoutType>(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(type.label),
-                          subtitle: Text(type.description),
-                          value: type,
-                        ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 24),
-                _layoutSlider(
-                  context,
-                  setState,
-                  key: const ValueKey('cardWidthSlider'),
-                  label: 'Card width',
-                  value: s.cardWidth,
-                  min: 160,
-                  max: 800,
-                  step: 20,
-                  unit: 'px',
-                  onChanged: (v) => setState(() {
-                    pending[pendingType] =
-                        pending[pendingType]!.copyWith(cardWidth: v);
-                  }),
-                ),
-                _layoutSlider(
-                  context,
-                  setState,
-                  key: const ValueKey('cardHeightSlider'),
-                  label: 'Card height',
-                  value: s.cardHeight,
-                  min: 90,
-                  max: 360,
-                  step: 15,
-                  unit: 'px',
-                  onChanged: (v) => setState(() {
-                    pending[pendingType] =
-                        pending[pendingType]!.copyWith(cardHeight: v);
-                  }),
-                ),
-                _layoutSlider(
-                  context,
-                  setState,
-                  key: const ValueKey('fontSizeSlider'),
-                  label: 'Font size',
-                  value: s.fontSize,
-                  min: 10,
-                  max: 22,
-                  step: 1,
-                  unit: 'pt',
-                  onChanged: (v) => setState(() {
-                    pending[pendingType] =
-                        pending[pendingType]!.copyWith(fontSize: v);
-                  }),
-                ),
-                const Divider(height: 24),
-                CheckboxListTile(
-                  key: const ValueKey('wholeImageCheckbox'),
-                  value: s.wholeImage,
-                  onChanged: (v) => setState(() {
-                    pending[pendingType] =
-                        pending[pendingType]!.copyWith(wholeImage: v ?? false);
-                  }),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Always show the whole image'),
-                  subtitle: const Text(
-                    'Scale the photo to fit the card instead of cropping it',
-                  ),
+                  child: const Text('Apply'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                ref.read(characterLayoutProvider.notifier).setLayout(
-                      CharacterLayout(type: pendingType, settings: pending),
-                    );
-                Navigator.of(context).pop();
-              },
-              child: const Text('Apply'),
-            ),
-          ],
+            );
+          },
         );
       },
     ),

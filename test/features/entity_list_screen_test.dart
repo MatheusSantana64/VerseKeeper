@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:versekeeper/core/models/character.dart';
 import 'package:versekeeper/core/models/story.dart';
+import 'package:versekeeper/features/entity/character_layout.dart';
 import 'package:versekeeper/features/entity/entity_image_providers.dart';
 
 import '../support/app_harness.dart';
@@ -96,9 +97,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('Haru (34yo) - Swordfighter'),
+      find.textContaining('Haru (34yo)'),
       findsOneWidget,
     );
+    expect(find.text('Swordfighter'), findsOneWidget);
     expect(
       find.textContaining('A tall wanderer with a long and detailed backstory.'),
       findsOneWidget,
@@ -276,6 +278,47 @@ void main() {
     image = tester.widget<CoverImage>(find.byType(CoverImage));
     expect(image.fill, isTrue);
     expect(image.fillFit, BoxFit.contain);
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('aspect lock links card width and height to the photo',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final database = await seededDatabase([haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(
+      database,
+      initialLocation: '/library/character',
+      overrides: [
+        layoutImageAspectProvider.overrideWith((ref) async => 2.0),
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('aspectLockCheckbox')));
+    await tester.pumpAndSettle();
+
+    // Drag the height slider to the max; the width follows (360 * 2 = 720).
+    await tester.drag(
+      find.byKey(const ValueKey('cardHeightSlider')),
+      const Offset(400, 0),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+
+    final card =
+        tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.height, closeTo(360, 0.1));
+    expect(card.width, closeTo(720, 0.1));
 
     await unmountTestApp(tester);
   });
