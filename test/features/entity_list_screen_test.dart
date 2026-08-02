@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:versekeeper/core/models/character.dart';
 import 'package:versekeeper/core/models/story.dart';
+import 'package:versekeeper/features/entity/entity_image_providers.dart';
 
 import '../support/app_harness.dart';
 
@@ -133,6 +134,11 @@ void main() {
     expect(card.width, closeTo(380, 0.1));
     expect(card.height, closeTo(120, 0.1));
 
+    // Compact defaults to showing the whole photo (aspect-preserving).
+    final cover = tester.widget<CoverImage>(find.byType(CoverImage));
+    expect(cover.fill, isFalse);
+    expect(cover.fixedHeight, closeTo(108, 0.1));
+
     await unmountTestApp(tester);
   });
 
@@ -198,6 +204,78 @@ void main() {
 
     final title = tester.widget<Text>(find.text('Haru'));
     expect(title.style?.fontSize, closeTo(24, 0.1));
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('each layout keeps its own size settings', (tester) async {
+    final database = await seededDatabase([haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    // Portrait starts from its own default height.
+    await pickLayout(tester, 'Portrait');
+    var card = tester
+        .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(380, 0.1));
+    expect(card.height, closeTo(160, 0.1));
+
+    // Enlarge the portrait width to the max.
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('cardWidthSlider')),
+      const Offset(400, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+
+    card = tester
+        .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(800, 0.1));
+
+    // Switching back to compact keeps its own (default) size.
+    await pickLayout(tester, 'Compact');
+    card = tester
+        .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(380, 0.1));
+    expect(card.height, closeTo(120, 0.1));
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('whole-image checkbox toggles the gallery photo fit',
+      (tester) async {
+    final database = await seededDatabase([haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    await pickLayout(tester, 'Gallery');
+
+    // Gallery defaults to cropping the photo to fill the card.
+    var image = tester.widget<CoverImage>(find.byType(CoverImage));
+    expect(image.fill, isTrue);
+    expect(image.fillFit, BoxFit.cover);
+
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('wholeImageCheckbox')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('wholeImageCheckbox')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+
+    image = tester.widget<CoverImage>(find.byType(CoverImage));
+    expect(image.fill, isTrue);
+    expect(image.fillFit, BoxFit.contain);
 
     await unmountTestApp(tester);
   });

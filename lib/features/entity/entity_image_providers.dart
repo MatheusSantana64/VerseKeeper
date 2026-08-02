@@ -19,7 +19,8 @@ final coverImagePickerProvider =
 /// Defaults to a fixed [size] square (image cropped to fill it). Pass
 /// [fixedHeight] instead to show the whole photo: the width then follows the
 /// image's aspect ratio and nothing is cropped. Pass [fill] to expand to the
-/// available box (width and height are `double.infinity`, cropped to fill).
+/// available box (width and height are `double.infinity`); [fillFit] then
+/// controls how the image is fit into that box (default crops to fill).
 ///
 /// When a photo is set and [viewEnabled] is true, tapping the image opens a
 /// fullscreen preview that supports pinch-to-zoom and panning.
@@ -30,6 +31,7 @@ class CoverImage extends ConsumerWidget {
     this.size = 56,
     this.fixedHeight,
     this.fill = false,
+    this.fillFit = BoxFit.cover,
     this.borderRadius = 8,
     this.icon = Icons.person_outline,
     this.viewEnabled = true,
@@ -39,6 +41,7 @@ class CoverImage extends ConsumerWidget {
   final double size;
   final double? fixedHeight;
   final bool fill;
+  final BoxFit fillFit;
   final double borderRadius;
   final IconData icon;
   final bool viewEnabled;
@@ -70,7 +73,7 @@ class CoverImage extends ConsumerWidget {
             File(path),
             width: fill ? double.infinity : (fixedHeight == null ? size : null),
             height: fill ? double.infinity : height,
-            fit: fill ? BoxFit.cover : (fixedHeight == null ? BoxFit.cover : BoxFit.contain),
+            fit: fill ? fillFit : (fixedHeight == null ? BoxFit.cover : BoxFit.contain),
             errorBuilder: (_, _, _) => placeholder(),
           ),
         );
