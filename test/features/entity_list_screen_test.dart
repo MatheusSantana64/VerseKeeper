@@ -30,7 +30,6 @@ void main() {
 
     expect(find.text('Haru'), findsOneWidget);
     expect(find.textContaining('Swordfighter of the north.'), findsOneWidget);
-    expect(find.textContaining('Description:'), findsOneWidget);
     expect(find.text('Crown of Ashes'), findsNothing);
 
     await unmountTestApp(tester);
@@ -74,7 +73,7 @@ void main() {
     await unmountTestApp(tester);
   });
 
-  testWidgets('character tiles show all populated fields', (tester) async {
+  testWidgets('character tiles show name, age, profession and description', (tester) async {
     final database = await seededDatabase([
       Character(
         id: 'char-haru',
@@ -95,11 +94,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Haru'), findsOneWidget);
-    expect(find.textContaining('Profession: Swordfighter'), findsOneWidget);
-    expect(find.textContaining('Age: 34'), findsOneWidget);
-    expect(find.textContaining('Race: Human'), findsOneWidget);
-    expect(find.textContaining('Tags: wanderer'), findsOneWidget);
+    expect(
+      find.textContaining('Haru (34yo) - Swordfighter'),
+      findsOneWidget,
+    );
     expect(
       find.textContaining('A tall wanderer with a long and detailed backstory.'),
       findsOneWidget,

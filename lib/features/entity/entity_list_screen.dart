@@ -20,15 +20,6 @@ class EntityListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = configOf(type);
     final entities = ref.watch(entityListProvider(type));
-    final universes = type == EntityType.character
-        ? ref.watch(entityListProvider(EntityType.universe))
-        : null;
-    final universeById = universes == null
-        ? const <String, StoredEntity>{}
-        : {
-            for (final universe in universes.value ?? const <StoredEntity>[])
-              universe.id: universe,
-          };
 
     return Scaffold(
       appBar: AppBar(
@@ -60,10 +51,7 @@ class EntityListScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final entity = list[index];
                   return type == EntityType.character
-                      ? _CharacterListTile(
-                          entity: entity,
-                          universeById: universeById,
-                        )
+                      ? _CharacterListTile(entity: entity)
                       : _EntityTile(entity: entity);
                 },
               ),
@@ -103,16 +91,13 @@ class _EntityTile extends StatelessWidget {
   }
 }
 
-/// Rich tile for a character: shows every non-empty field, with long-form
-/// text truncated to a few lines.
+/// Compact tile for a character: photo on the left (not cropped to a
+/// circle), then a "Name (ageyo) - profession" title and the description
+/// below.
 class _CharacterListTile extends StatelessWidget {
-  const _CharacterListTile({
-    required this.entity,
-    required this.universeById,
-  });
+  const _CharacterListTile({required this.entity});
 
   final StoredEntity entity;
-  final Map<String, StoredEntity> universeById;
 
   @override
   Widget build(BuildContext context) {
@@ -125,48 +110,13 @@ class _CharacterListTile extends StatelessWidget {
       return value is String && value.trim().isNotEmpty ? value.trim() : null;
     }
 
-    String? listField(String key) {
-      final value = json[key];
-      if (value is! List || value.isEmpty) return null;
-      return value.map((item) => item.toString()).join(', ');
-    }
+    final age = stringField('age');
+    final profession = stringField('profession');
+    final description = stringField('description');
 
-    String? universeField() {
-      final value = json['universeIds'];
-      if (value is! List || value.isEmpty) return null;
-      final names = [
-        for (final id in value)
-          universeById[id] == null ? id.toString() : displayNameOf(universeById[id]!),
-      ];
-      return names.join(', ');
-    }
-
-    int relationshipCount() {
-      final value = json['relationships'];
-      if (value is! List) return 0;
-      return value.length;
-    }
-
-    Widget row(String label, String? value, {int maxLines = 2}) {
-      if (value == null || value.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: '$label: ',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.outline),
-              ),
-              TextSpan(text: value, style: theme.textTheme.bodySmall),
-            ],
-          ),
-          maxLines: maxLines,
-          overflow: TextOverflow.ellipsis,
-        ),
-      );
-    }
+    final title = StringBuffer(displayNameOf(entity));
+    if (age != null) title.write(' (${age}yo)');
+    if (profession != null) title.write(' - $profession');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -175,41 +125,39 @@ class _CharacterListTile extends StatelessWidget {
         onTap: () =>
             context.push('/library/${entity.entityType.name}/${entity.id}'),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  CoverImage(
-                    imageId: json['coverImageId'] as String?,
-                    size: 40,
-                    borderRadius: 20,
-                    icon: config.icon,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      displayNameOf(entity),
+              CoverImage(
+                imageId: json['coverImageId'] as String?,
+                size: 56,
+                borderRadius: 8,
+                icon: config.icon,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title.toString(),
                       style: theme.textTheme.titleMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
+                    if (description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
-              row('Profession', stringField('profession')),
-              row('Age', stringField('age')),
-              row('Race', stringField('race')),
-              row('Universes', universeField()),
-              row('Tags', listField('tags')),
-              row('Description', stringField('description'), maxLines: 3),
-              row(
-                'Relationships',
-                relationshipCount() > 0 ? '${relationshipCount()}' : null,
-              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
         ),
