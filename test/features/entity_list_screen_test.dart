@@ -135,14 +135,26 @@ void main() {
     expect(card.width, closeTo(380, 0.1));
     expect(card.height, closeTo(120, 0.1));
 
-    // Compact photo box is derived from the card (42% of width, full inner
-    // height) and the image is always shown whole (contain).
+    // The photo is height-driven and its width follows the image's aspect
+    // (height x 1.5 for the no-image placeholder), so the text can start
+    // just 4px to the right of the image.
     final cover = tester.widget<CoverImage>(find.byType(CoverImage));
-    expect(cover.fill, isTrue);
-    expect(cover.fillFit, BoxFit.contain);
+    expect(cover.fill, isFalse);
+    expect(cover.fixedHeight, closeTo(120, 0.1));
     final photo = tester.getSize(find.byKey(const ValueKey('compactPhotoBox')));
-    expect(photo.width, closeTo(159.6, 0.1));
-    expect(photo.height, closeTo(108, 0.1));
+    expect(photo.height, closeTo(120, 0.1));
+
+    // The photo is flush with the card's top-left corner.
+    final cardPos =
+        tester.getTopLeft(find.byKey(const ValueKey('characterCard_0')));
+    final photoPos =
+        tester.getTopLeft(find.byKey(const ValueKey('compactPhotoBox')));
+    expect(photoPos.dx, closeTo(cardPos.dx, 0.1));
+    expect(photoPos.dy, closeTo(cardPos.dy, 0.1));
+
+    // The text starts 4px after the end of the image.
+    final textPos = tester.getTopLeft(find.text('Haru'));
+    expect(textPos.dx, closeTo(photoPos.dx + photo.width + 4, 1.0));
 
     await unmountTestApp(tester);
   });
@@ -292,6 +304,14 @@ void main() {
       findsOneWidget,
     );
 
+    // The photo is flush with the card's top-left corner.
+    final cardPos =
+        tester.getTopLeft(find.byKey(const ValueKey('characterCard_0')));
+    final photoPos =
+        tester.getTopLeft(find.byKey(const ValueKey('portraitPhotoBox')));
+    expect(photoPos.dx, closeTo(cardPos.dx, 0.1));
+    expect(photoPos.dy, closeTo(cardPos.dy, 0.1));
+
     await unmountTestApp(tester);
   });
 
@@ -321,17 +341,14 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
     await tester.pumpAndSettle();
 
-    // The photo box is 42% of the card width and the card's inner height,
-    // so it always fits inside the card.
+    // The photo box derives from card height, staying next to the text.
     final card =
         tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
     expect(card.width, closeTo(800, 0.1));
     expect(card.height, closeTo(360, 0.1));
     final photo = tester.getSize(find.byKey(const ValueKey('compactPhotoBox')));
-    expect(photo.width, closeTo(336, 0.1));
-    expect(photo.height, closeTo(348, 0.1));
-    expect(photo.width, lessThan(card.width!));
-    expect(photo.height, lessThan(card.height!));
+    expect(photo.height, closeTo(360, 0.1));
+    expect(photo.height, lessThanOrEqualTo(card.height!));
 
     await unmountTestApp(tester);
   });

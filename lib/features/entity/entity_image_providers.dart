@@ -32,6 +32,7 @@ class CoverImage extends ConsumerWidget {
     this.fixedHeight,
     this.fill = false,
     this.fillFit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.borderRadius = 8,
     this.icon = Icons.person_outline,
     this.viewEnabled = true,
@@ -42,6 +43,7 @@ class CoverImage extends ConsumerWidget {
   final double? fixedHeight;
   final bool fill;
   final BoxFit fillFit;
+  final Alignment alignment;
   final double borderRadius;
   final IconData icon;
   final bool viewEnabled;
@@ -74,6 +76,7 @@ class CoverImage extends ConsumerWidget {
             width: fill ? double.infinity : (fixedHeight == null ? size : null),
             height: fill ? double.infinity : height,
             fit: fill ? fillFit : (fixedHeight == null ? BoxFit.cover : BoxFit.contain),
+            alignment: alignment,
             errorBuilder: (_, _, _) => placeholder(),
           ),
         );

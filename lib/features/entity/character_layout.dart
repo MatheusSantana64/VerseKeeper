@@ -86,16 +86,20 @@ class CharacterCardMetrics {
 const double _cardPadding = 12.0;
 const double _galleryStrip = 32.0;
 
-/// Photo's share of the card width in the side-by-side layouts.
-const double _compactPhotoShare = 0.42;
-const double _portraitPhotoShare = 0.45;
+/// Photo box height in the side-by-side layouts. The photo is pinned to the
+/// card's height; its width follows the image's aspect ratio (via
+/// `CoverImage.fixedHeight`), so the text always starts exactly at the image's
+/// right edge instead of after a fixed wide box.
+double _sidePhotoSide(double cardH) => math.max(40.0, cardH);
 
 /// Computes the rendered card and photo box sizes for [type] from [s].
 ///
-/// The photo box derives from the card: in compact/portrait the photo takes
-/// a fixed share of the card width and all of the card's inner height; in
-/// gallery it takes the full card width minus a name strip. Images are drawn
-/// contained inside this box, so they are always fully visible.
+/// The photo box derives from the card: in compact/portrait the photo is
+/// height-driven (a square in [characterCardMetrics] terms; the rendered
+/// `CoverImage.fixedHeight` box is width-aspect-following), in gallery it
+/// takes the full card width minus a name strip. Images are drawn contained
+/// inside this box (`BoxFit.contain`, top-left aligned), so they are always
+/// fully visible.
 CharacterCardMetrics characterCardMetrics(
   CharacterLayoutSettings s,
   CharacterLayoutType type,
@@ -104,18 +108,20 @@ CharacterCardMetrics characterCardMetrics(
   final cardH = s.cardHeight.toDouble();
   switch (type) {
     case CharacterLayoutType.compact:
+      final side = _sidePhotoSide(cardH);
       return CharacterCardMetrics(
         cardWidth: cardW,
         cardHeight: cardH,
-        photoWidth: cardW * _compactPhotoShare,
-        photoHeight: math.max(40.0, cardH - _cardPadding),
+        photoWidth: side,
+        photoHeight: side,
       );
     case CharacterLayoutType.portrait:
+      final side = _sidePhotoSide(cardH);
       return CharacterCardMetrics(
         cardWidth: cardW,
         cardHeight: cardH,
-        photoWidth: cardW * _portraitPhotoShare,
-        photoHeight: math.max(40.0, cardH - _cardPadding),
+        photoWidth: side,
+        photoHeight: side,
       );
     case CharacterLayoutType.gallery:
       return CharacterCardMetrics(

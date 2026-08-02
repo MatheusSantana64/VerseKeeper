@@ -199,52 +199,40 @@ class _CompactCharacterCard extends StatelessWidget {
         onTap: () =>
             context.push('/library/${entity.entityType.name}/${entity.id}'),
         child: Padding(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.only(right: 6),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
+              CoverImage(
                 key: const ValueKey('compactPhotoBox'),
-                width: metrics.photoWidth,
-                height: metrics.photoHeight,
-                child: CoverImage(
-                  imageId: json['coverImageId'] as String?,
-                  fill: true,
-                  fillFit: BoxFit.contain,
-                  borderRadius: 8,
-                  icon: config.icon,
-                ),
+                imageId: json['coverImageId'] as String?,
+                fixedHeight: metrics.photoHeight,
+                borderRadius: 8,
+                icon: config.icon,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title.toString(),
-                      style: titleStyle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (profession != null) ...[
-                      const SizedBox(height: 2),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 6, 0, 6),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        profession,
-                        style: professionStyle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (description != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: bodyStyle,
+                        title.toString(),
+                        style: titleStyle,
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (profession != null) ...[
+                        const SizedBox(height: 2),
+                        Text(profession, style: professionStyle, maxLines: 1),
+                      ],
+                      if (description != null) ...[
+                        const SizedBox(height: 2),
+                        Text(description, style: bodyStyle, maxLines: 2),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -292,57 +280,48 @@ class _PortraitCharacterCard extends StatelessWidget {
         onTap: () =>
             context.push('/library/${entity.entityType.name}/${entity.id}'),
         child: Padding(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.only(right: 6),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
+              CoverImage(
                 key: const ValueKey('portraitPhotoBox'),
-                width: metrics.photoWidth,
-                height: metrics.photoHeight,
-                child: CoverImage(
-                  imageId: json['coverImageId'] as String?,
-                  fill: true,
-                  fillFit: BoxFit.contain,
-                  borderRadius: 8,
-                  icon: config.icon,
-                ),
+                imageId: json['coverImageId'] as String?,
+                fixedHeight: metrics.photoHeight,
+                borderRadius: 8,
+                icon: config.icon,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: titleStyle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (age != null) ...[
-                      const SizedBox(height: 2),
-                      Text(age, style: bodyStyle),
-                    ],
-                    if (profession != null) ...[
-                      const SizedBox(height: 2),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 6, 0, 6),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        profession,
-                        style: bodyStyle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        name,
+                        style: titleStyle,
+                        maxLines: 2,
                       ),
+                      if (age != null) ...[
+                        const SizedBox(height: 2),
+                        Text(age, style: bodyStyle),
+                      ],
+                      if (profession != null) ...[
+                        const SizedBox(height: 2),
+                        Text(profession, style: bodyStyle, maxLines: 1),
+                      ],
+                      if (description != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          description,
+                          style: bodyStyle,
+                          maxLines: 3,
+                        ),
+                      ],
                     ],
-                    if (description != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: bodyStyle,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -395,17 +374,15 @@ class _GalleryCharacterCard extends StatelessWidget {
                 icon: config.icon,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
-              child: SizedBox(
-                height: 24,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: Alignment.topLeft,
                   child: Text(
                     displayNameOf(entity),
                     style: titleStyle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
                 ),
               ),
