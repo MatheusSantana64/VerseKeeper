@@ -117,4 +117,78 @@ void main() {
 
     await unmountTestApp(tester);
   });
+
+  testWidgets('default layout is a compact single-column list', (tester) async {
+    final database = await seededDatabase([haru, crown]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('compactCharacterCard')), findsOneWidget);
+    expect(find.byKey(const ValueKey('galleryCharacterCard')), findsNothing);
+    expect(
+      tester
+          .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')))
+          .width,
+      closeTo(800 - 32, 0.1),
+    );
+
+    await unmountTestApp(tester);
+  });
+
+  Future<void> pickLayout(WidgetTester tester, String label) async {
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('layout dialog switches between card layouts', (tester) async {
+    final database = await seededDatabase([haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    await pickLayout(tester, 'Portrait');
+    expect(find.byKey(const ValueKey('portraitCharacterCard')), findsOneWidget);
+    expect(find.byKey(const ValueKey('compactCharacterCard')), findsNothing);
+
+    await pickLayout(tester, 'Gallery');
+    expect(find.byKey(const ValueKey('galleryCharacterCard')), findsOneWidget);
+    expect(find.byKey(const ValueKey('portraitCharacterCard')), findsNothing);
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('cards-per-line changes the card width', (tester) async {
+    final database = await seededDatabase([haru, crown]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+
+    // Drag the slider to the far right (5 cards per line).
+    await tester.drag(find.byType(Slider), const Offset(400, 0));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+
+    final expectedWidth = (800 - 32 - 12 * 4) / 5;
+    expect(
+      tester
+          .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')))
+          .width,
+      closeTo(expectedWidth, 0.1),
+    );
+
+    await unmountTestApp(tester);
+  });
 }

@@ -13,6 +13,7 @@ VerseKeeper is a Flutter app (Windows + Android targets) for worldbuilding with 
 - Screens must not depend on `lib/data/local` (clean arch: features → repositories only). `lib/features/entity/entity_library_providers.dart` provides generic `StreamProvider.family`/`FutureProvider.family` bridges (`entityListProvider`, `entityCountProvider`, `entityDetailProvider`) that switch over the typed repo providers; `entity_type_config.dart` maps `EntityType` → label/icon; `entity_display.dart` derives display names/previews from `toJson()` (no codec dependency).
 - New entity types need: a config entry in `entity_type_config.dart`, plus (if promoted in the drawer/dashboard) a slot in `primaryEntityTypes`.
 - The relationship graph (`relationship_graph_screen.dart`, route `/graph`) renders all characters as a circle; edges are owned relationships plus derived inverses (see `RelationshipType.inverse`). Node taps navigate to the character detail.
+- The character list has switchable card layouts (compact / portrait / gallery) and a cards-per-line setting (1–5), chosen via a dialog from the list app bar and persisted with `shared_preferences`; see `character_layout.dart` (`characterLayoutProvider`). Cards are laid out with a `Wrap` so rows size to content.
 
 ## Editing (Phase 5)
 

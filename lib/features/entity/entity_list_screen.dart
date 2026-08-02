@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/entity_type.dart';
 import '../../core/models/stored_entity.dart';
 import '../app_shell/app_drawer.dart';
+import 'character_layout.dart';
 import 'entity_display.dart';
 import 'entity_image_providers.dart';
 import 'entity_library_providers.dart';
@@ -28,12 +29,18 @@ class EntityListScreen extends ConsumerWidget {
             : null,
         title: Text(config.label),
         actions: [
-          if (type == EntityType.character)
+          if (type == EntityType.character) ...[
+            IconButton(
+              tooltip: 'Layout',
+              icon: const Icon(Icons.grid_view_rounded),
+              onPressed: () => showCharacterLayoutDialog(context, ref),
+            ),
             IconButton(
               tooltip: 'Relationship graph',
               icon: const Icon(Icons.hub_outlined),
               onPressed: () => context.push('/graph'),
             ),
+          ],
         ],
       ),
       drawer: const AppDrawer(),
@@ -43,18 +50,23 @@ class EntityListScreen extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
       body: entities.when(
-        data: (list) => list.isEmpty
-            ? _EmptyState(type: type)
-            : ListView.builder(
-                padding: const EdgeInsets.only(bottom: 88),
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  final entity = list[index];
-                  return type == EntityType.character
-                      ? _CharacterListTile(entity: entity)
-                      : _EntityTile(entity: entity);
-                },
-              ),
+        data: (list) {
+          if (list.isEmpty) return _EmptyState(type: type);
+          if (type == EntityType.character) {
+            return _CharacterBody(
+              list: list,
+              layout: ref.watch(characterLayoutProvider),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 88),
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final entity = list[index];
+              return _EntityTile(entity: entity);
+            },
+          );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Could not load: $error')),
       ),
@@ -91,11 +103,60 @@ class _EntityTile extends StatelessWidget {
   }
 }
 
-/// Compact tile for a character: photo on the left (not cropped to a
+/// Renders character cards in the chosen layout, wrapping to the requested
+/// number of cards per line.
+class _CharacterBody extends StatelessWidget {
+  const _CharacterBody({required this.list, required this.layout});
+
+  final List<StoredEntity> list;
+  final CharacterLayout layout;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        const sidePadding = 16.0;
+        final cardWidth =
+            (constraints.maxWidth - sidePadding * 2 - gap * (layout.columns - 1)) /
+                layout.columns;
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(sidePadding, 8, sidePadding, 88),
+          child: Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (var i = 0; i < list.length; i++)
+                SizedBox(
+                  key: ValueKey('characterCard_$i'),
+                  width: cardWidth,
+                  child: switch (layout.type) {
+                    CharacterLayoutType.compact =>
+                      _CompactCharacterCard(entity: list[i]),
+                    CharacterLayoutType.portrait =>
+                      _PortraitCharacterCard(entity: list[i]),
+                    CharacterLayoutType.gallery =>
+                      _GalleryCharacterCard(entity: list[i]),
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+String? _stringField(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  return value is String && value.trim().isNotEmpty ? value.trim() : null;
+}
+
+/// Compact card for a character: photo on the left (not cropped to a
 /// circle), then a "Name (ageyo) - profession" title and the description
 /// below.
-class _CharacterListTile extends StatelessWidget {
-  const _CharacterListTile({required this.entity});
+class _CompactCharacterCard extends StatelessWidget {
+  const _CompactCharacterCard({required this.entity});
 
   final StoredEntity entity;
 
@@ -105,34 +166,32 @@ class _CharacterListTile extends StatelessWidget {
     final json = entity.toJson();
     final config = configOf(entity.entityType);
 
-    String? stringField(String key) {
-      final value = json[key];
-      return value is String && value.trim().isNotEmpty ? value.trim() : null;
-    }
-
-    final age = stringField('age');
-    final profession = stringField('profession');
-    final description = stringField('description');
+    final age = _stringField(json, 'age');
+    final profession = _stringField(json, 'profession');
+    final description = _stringField(json, 'description');
 
     final title = StringBuffer(displayNameOf(entity));
     if (age != null) title.write(' (${age}yo)');
     if (profession != null) title.write(' - $profession');
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      key: const ValueKey('compactCharacterCard'),
+      margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () =>
             context.push('/library/${entity.entityType.name}/${entity.id}'),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              CoverImage(
-                imageId: json['coverImageId'] as String?,
-                fixedHeight: 64,
-                borderRadius: 8,
-                icon: config.icon,
+              Flexible(
+                child: CoverImage(
+                  imageId: json['coverImageId'] as String?,
+                  fixedHeight: 64,
+                  borderRadius: 8,
+                  icon: config.icon,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -160,6 +219,117 @@ class _CharacterListTile extends StatelessWidget {
               const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Portrait card: a taller photo on the left with name, age and profession
+/// stacked on the right.
+class _PortraitCharacterCard extends StatelessWidget {
+  const _PortraitCharacterCard({required this.entity});
+
+  final StoredEntity entity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final json = entity.toJson();
+    final config = configOf(entity.entityType);
+
+    final name = displayNameOf(entity);
+    final age = _stringField(json, 'age');
+    final profession = _stringField(json, 'profession');
+
+    return Card(
+      key: const ValueKey('portraitCharacterCard'),
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () =>
+            context.push('/library/${entity.entityType.name}/${entity.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: CoverImage(
+                  imageId: json['coverImageId'] as String?,
+                  fixedHeight: 84,
+                  borderRadius: 8,
+                  icon: config.icon,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (age != null) ...[
+                      const SizedBox(height: 4),
+                      Text(age, style: theme.textTheme.bodyMedium),
+                    ],
+                    if (profession != null) ...[
+                      const SizedBox(height: 4),
+                      Text(profession, style: theme.textTheme.bodyMedium),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Gallery card: a big photo with the character name below it.
+class _GalleryCharacterCard extends StatelessWidget {
+  const _GalleryCharacterCard({required this.entity});
+
+  final StoredEntity entity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final json = entity.toJson();
+    final config = configOf(entity.entityType);
+
+    return Card(
+      key: const ValueKey('galleryCharacterCard'),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () =>
+            context.push('/library/${entity.entityType.name}/${entity.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CoverImage(
+              imageId: json['coverImageId'] as String?,
+              fixedHeight: 200,
+              borderRadius: 0,
+              icon: config.icon,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Text(
+                displayNameOf(entity),
+                style: theme.textTheme.titleMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
