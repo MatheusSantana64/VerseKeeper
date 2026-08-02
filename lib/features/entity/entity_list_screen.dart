@@ -104,7 +104,7 @@ class _EntityTile extends StatelessWidget {
 }
 
 /// Renders character cards in the chosen layout, each at the configured card
-/// size and font size for that layout.
+/// and image sizes for that layout.
 class _CharacterBody extends StatelessWidget {
   const _CharacterBody({required this.list, required this.layout});
 
@@ -116,28 +116,46 @@ class _CharacterBody extends StatelessWidget {
     const gap = 8.0;
     const sidePadding = 12.0;
     final settings = layout.current;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(sidePadding, 8, sidePadding, 88),
-      child: Wrap(
-        spacing: gap,
-        runSpacing: gap,
-        children: [
-          for (var i = 0; i < list.length; i++)
-            SizedBox(
-              key: ValueKey('characterCard_$i'),
-              width: settings.cardWidth.toDouble(),
-              height: settings.cardHeight.toDouble(),
-              child: switch (layout.type) {
-                CharacterLayoutType.compact =>
-                  _CompactCharacterCard(entity: list[i], settings: settings),
-                CharacterLayoutType.portrait =>
-                  _PortraitCharacterCard(entity: list[i], settings: settings),
-                CharacterLayoutType.gallery =>
-                  _GalleryCharacterCard(entity: list[i], settings: settings),
-              },
-            ),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final metrics = characterCardMetrics(
+          settings,
+          layout.type,
+          maxWidth: constraints.maxWidth - sidePadding * 2 - gap,
+        );
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(sidePadding, 8, sidePadding, 88),
+          child: Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (var i = 0; i < list.length; i++)
+                SizedBox(
+                  key: ValueKey('characterCard_$i'),
+                  width: metrics.cardWidth,
+                  height: metrics.cardHeight,
+                  child: switch (layout.type) {
+                    CharacterLayoutType.compact => _CompactCharacterCard(
+                        entity: list[i],
+                        settings: settings,
+                        metrics: metrics,
+                      ),
+                    CharacterLayoutType.portrait => _PortraitCharacterCard(
+                        entity: list[i],
+                        settings: settings,
+                        metrics: metrics,
+                      ),
+                    CharacterLayoutType.gallery => _GalleryCharacterCard(
+                        entity: list[i],
+                        settings: settings,
+                        metrics: metrics,
+                      ),
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -148,13 +166,18 @@ String? _stringField(Map<String, dynamic> json, String key) {
 }
 
 /// Compact card for a character: photo on the left (not cropped to a
-/// circle), then a "Name (ageyo) - profession" title and the description
+/// circle), then a "Name (ageyo)" title, the profession and the description
 /// below.
 class _CompactCharacterCard extends StatelessWidget {
-  const _CompactCharacterCard({required this.entity, required this.settings});
+  const _CompactCharacterCard({
+    required this.entity,
+    required this.settings,
+    required this.metrics,
+  });
 
   final StoredEntity entity;
   final CharacterLayoutSettings settings;
+  final CharacterCardMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +198,6 @@ class _CompactCharacterCard extends StatelessWidget {
         ?.copyWith(fontSize: settings.fontSize.toDouble());
     final bodyStyle =
         theme.textTheme.bodySmall?.copyWith(fontSize: settings.fontSize - 1.0);
-    final photoHeight = (settings.cardHeight - 12).toDouble();
 
     return Card(
       key: const ValueKey('compactCharacterCard'),
@@ -188,26 +210,20 @@ class _CompactCharacterCard extends StatelessWidget {
           padding: const EdgeInsets.all(6),
           child: Row(
             children: [
-              if (settings.showWholeImage)
-                Flexible(
-                  child: CoverImage(
-                    imageId: json['coverImageId'] as String?,
-                    fixedHeight: photoHeight,
-                    borderRadius: 8,
-                    icon: config.icon,
-                  ),
-                )
-              else
-                SizedBox(
-                  width: settings.cardWidth * 0.36,
-                  height: photoHeight,
-                  child: CoverImage(
-                    imageId: json['coverImageId'] as String?,
-                    fill: true,
-                    borderRadius: 8,
-                    icon: config.icon,
-                  ),
+              SizedBox(
+                key: const ValueKey('compactPhotoBox'),
+                width: metrics.photoWidth,
+                height: metrics.photoHeight,
+                child: CoverImage(
+                  imageId: json['coverImageId'] as String?,
+                  fill: true,
+                  fillFit: settings.showWholeImage
+                      ? BoxFit.contain
+                      : BoxFit.cover,
+                  borderRadius: 8,
+                  icon: config.icon,
                 ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -252,10 +268,15 @@ class _CompactCharacterCard extends StatelessWidget {
 /// Portrait card: a taller photo on the left with name, age and profession
 /// stacked on the right.
 class _PortraitCharacterCard extends StatelessWidget {
-  const _PortraitCharacterCard({required this.entity, required this.settings});
+  const _PortraitCharacterCard({
+    required this.entity,
+    required this.settings,
+    required this.metrics,
+  });
 
   final StoredEntity entity;
   final CharacterLayoutSettings settings;
+  final CharacterCardMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +292,6 @@ class _PortraitCharacterCard extends StatelessWidget {
         theme.textTheme.titleMedium?.copyWith(fontSize: settings.fontSize + 2.0);
     final bodyStyle = theme.textTheme.bodyMedium
         ?.copyWith(fontSize: settings.fontSize.toDouble());
-    final photoHeight = (settings.cardHeight - 12).toDouble();
 
     return Card(
       key: const ValueKey('portraitCharacterCard'),
@@ -285,26 +305,20 @@ class _PortraitCharacterCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (settings.showWholeImage)
-                Flexible(
-                  child: CoverImage(
-                    imageId: json['coverImageId'] as String?,
-                    fixedHeight: photoHeight,
-                    borderRadius: 8,
-                    icon: config.icon,
-                  ),
-                )
-              else
-                SizedBox(
-                  width: settings.cardWidth * 0.42,
-                  height: photoHeight,
-                  child: CoverImage(
-                    imageId: json['coverImageId'] as String?,
-                    fill: true,
-                    borderRadius: 8,
-                    icon: config.icon,
-                  ),
+              SizedBox(
+                key: const ValueKey('portraitPhotoBox'),
+                width: metrics.photoWidth,
+                height: metrics.photoHeight,
+                child: CoverImage(
+                  imageId: json['coverImageId'] as String?,
+                  fill: true,
+                  fillFit: settings.showWholeImage
+                      ? BoxFit.contain
+                      : BoxFit.cover,
+                  borderRadius: 8,
+                  icon: config.icon,
                 ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -338,10 +352,15 @@ class _PortraitCharacterCard extends StatelessWidget {
 
 /// Gallery card: a big photo filling the card with the character name below.
 class _GalleryCharacterCard extends StatelessWidget {
-  const _GalleryCharacterCard({required this.entity, required this.settings});
+  const _GalleryCharacterCard({
+    required this.entity,
+    required this.settings,
+    required this.metrics,
+  });
 
   final StoredEntity entity;
   final CharacterLayoutSettings settings;
+  final CharacterCardMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +381,9 @@ class _GalleryCharacterCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
+            SizedBox(
+              key: const ValueKey('galleryPhotoBox'),
+              height: metrics.photoHeight,
               child: CoverImage(
                 imageId: json['coverImageId'] as String?,
                 fill: true,
@@ -374,12 +395,18 @@ class _GalleryCharacterCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Text(
-                displayNameOf(entity),
-                style: titleStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+              child: SizedBox(
+                height: 24,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    displayNameOf(entity),
+                    style: titleStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
             ),
           ],

@@ -136,10 +136,13 @@ void main() {
     expect(card.width, closeTo(380, 0.1));
     expect(card.height, closeTo(120, 0.1));
 
-    // Compact defaults to showing the whole photo (aspect-preserving).
+    // Compact defaults to showing the whole photo in its own image box.
     final cover = tester.widget<CoverImage>(find.byType(CoverImage));
-    expect(cover.fill, isFalse);
-    expect(cover.fixedHeight, closeTo(108, 0.1));
+    expect(cover.fill, isTrue);
+    expect(cover.fillFit, BoxFit.contain);
+    final photo = tester.getSize(find.byKey(const ValueKey('compactPhotoBox')));
+    expect(photo.width, closeTo(140, 0.1));
+    expect(photo.height, closeTo(108, 0.1));
 
     await unmountTestApp(tester);
   });
@@ -172,6 +175,10 @@ void main() {
   });
 
   testWidgets('size and font sliders change the cards', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final database = await seededDatabase([haru, crown]);
     addTearDown(database.close);
 
@@ -211,6 +218,10 @@ void main() {
   });
 
   testWidgets('each layout keeps its own size settings', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final database = await seededDatabase([haru]);
     addTearDown(database.close);
 
@@ -251,6 +262,10 @@ void main() {
 
   testWidgets('whole-image checkbox toggles the gallery photo fit',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final database = await seededDatabase([haru]);
     addTearDown(database.close);
 
@@ -282,9 +297,9 @@ void main() {
     await unmountTestApp(tester);
   });
 
-  testWidgets('aspect lock links card width and height to the photo',
+  testWidgets('aspect lock links image width and height to the photo',
       (tester) async {
-    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.physicalSize = const Size(1200, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -305,9 +320,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('aspectLockCheckbox')));
     await tester.pumpAndSettle();
 
-    // Drag the height slider to the max; the width follows (360 * 2 = 720).
+    // Drag the image width to the max; the height follows (800 / 2 = 400).
     await tester.drag(
-      find.byKey(const ValueKey('cardHeightSlider')),
+      find.byKey(const ValueKey('imageWidthSlider')),
       const Offset(400, 0),
     );
     await tester.pumpAndSettle();
@@ -315,10 +330,83 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
     await tester.pumpAndSettle();
 
+    // Whole-image compact card grows to fit the oversized photo box:
+    // width = 800 + 8 (gap) + 120 (text) + 12 (padding), height = 400 + 12.
     final card =
         tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
-    expect(card.height, closeTo(360, 0.1));
-    expect(card.width, closeTo(720, 0.1));
+    expect(card.width, closeTo(940, 0.1));
+    expect(card.height, closeTo(412, 0.1));
+    final photo = tester.getSize(find.byKey(const ValueKey('compactPhotoBox')));
+    expect(photo.width, closeTo(800, 0.1));
+    expect(photo.height, closeTo(400, 0.1));
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('oversized image grows the card when whole image is on',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final database = await seededDatabase([haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('imageWidthSlider')),
+      const Offset(400, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+
+    final card =
+        tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(940, 0.1));
+    expect(card.height, closeTo(120, 0.1));
+    final photo = tester.getSize(find.byKey(const ValueKey('compactPhotoBox')));
+    expect(photo.width, closeTo(800, 0.1));
+    expect(photo.height, closeTo(108, 0.1));
+
+    await unmountTestApp(tester);
+  });
+
+  testWidgets('without whole image the card keeps its size and clamps the photo',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final database = await seededDatabase([haru]);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(buildTestApp(database, initialLocation: '/library/character'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Layout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('wholeImageCheckbox')));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('imageWidthSlider')),
+      const Offset(400, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+    await tester.pumpAndSettle();
+
+    // The card ignores the oversized image box; the photo is clamped to fit.
+    final card =
+        tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(380, 0.1));
+    expect(card.height, closeTo(120, 0.1));
+    final photo = tester.getSize(find.byKey(const ValueKey('compactPhotoBox')));
+    expect(photo.width, closeTo(240, 0.1));
 
     await unmountTestApp(tester);
   });

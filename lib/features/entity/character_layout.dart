@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -47,6 +48,8 @@ class CharacterLayoutSettings {
     this.cardWidth = 380,
     this.cardHeight = 120,
     this.fontSize = 14,
+    this.imageWidth = 140,
+    this.imageHeight = 108,
     this.wholeImage = true,
     this.lockAspect = false,
   });
@@ -60,11 +63,17 @@ class CharacterLayoutSettings {
   /// Base text size for card content.
   final int fontSize;
 
+  /// Desired photo width in logical pixels.
+  final int imageWidth;
+
+  /// Desired photo height in logical pixels.
+  final int imageHeight;
+
   /// When true the photo is always shown whole (scaled to fit the card,
   /// never cropped); when false it fills the photo box and may be cropped.
   final bool wholeImage;
 
-  /// When true the card width and height stay locked to the reference
+  /// When true the image width and height stay locked to the reference
   /// photo's proportions: moving one slider adjusts the other.
   final bool lockAspect;
 
@@ -76,6 +85,8 @@ class CharacterLayoutSettings {
     int? cardWidth,
     int? cardHeight,
     int? fontSize,
+    int? imageWidth,
+    int? imageHeight,
     bool? wholeImage,
     bool? lockAspect,
   }) {
@@ -83,9 +94,107 @@ class CharacterLayoutSettings {
       cardWidth: cardWidth ?? this.cardWidth,
       cardHeight: cardHeight ?? this.cardHeight,
       fontSize: fontSize ?? this.fontSize,
+      imageWidth: imageWidth ?? this.imageWidth,
+      imageHeight: imageHeight ?? this.imageHeight,
       wholeImage: wholeImage ?? this.wholeImage,
       lockAspect: lockAspect ?? this.lockAspect,
     );
+  }
+}
+
+/// Rendered sizes for one card given its layout settings: the size the card
+/// box should be drawn at plus the photo box inside it.
+class CharacterCardMetrics {
+  const CharacterCardMetrics({
+    required this.cardWidth,
+    required this.cardHeight,
+    required this.photoWidth,
+    required this.photoHeight,
+  });
+
+  final double cardWidth;
+  final double cardHeight;
+  final double photoWidth;
+  final double photoHeight;
+}
+
+/// Computes the rendered card and photo box sizes for [type] from [s].
+///
+/// When the photo is shown whole and its box does not fit inside the chosen
+/// card size, the card grows so the whole image still fits — but never wider
+/// than [maxWidth] (the available list width, since a `Wrap` clamps children
+/// to it); when clamped, the photo box shrinks instead of overflowing.
+/// Otherwise the card keeps its exact size and the photo box is clamped
+/// (uniformly scaled) to the space the card has left.
+CharacterCardMetrics characterCardMetrics(
+  CharacterLayoutSettings s,
+  CharacterLayoutType type, {
+  double? maxWidth,
+}) {
+  const gap = 8.0;
+  const cardPadding = 12.0;
+  const textMin = 120.0;
+  const galleryStrip = 32.0;
+
+  final imageW = s.imageWidth.toDouble();
+  final imageH = s.imageHeight.toDouble();
+  final showWhole = s.showWholeImage;
+
+  switch (type) {
+    case CharacterLayoutType.compact:
+    case CharacterLayoutType.portrait:
+      if (showWhole) {
+        final idealW = imageW + gap + textMin + cardPadding;
+        final renderW = maxWidth == null
+            ? math.max(s.cardWidth.toDouble(), idealW)
+            : math.max(
+                s.cardWidth.toDouble(),
+                math.min(idealW, maxWidth),
+              );
+        final innerW = renderW - cardPadding;
+        final photoW = math.min(
+          imageW,
+          math.max(0.0, innerW - gap - textMin),
+        );
+        return CharacterCardMetrics(
+          cardWidth: renderW,
+          cardHeight: math.max(s.cardHeight.toDouble(), imageH + cardPadding),
+          photoWidth: photoW,
+          photoHeight: imageH,
+        );
+      }
+      final innerW = s.cardWidth - cardPadding;
+      final innerH = s.cardHeight - cardPadding;
+      final availableW = math.max(40.0, innerW - gap - textMin);
+      final scale = (imageW <= 0 || imageH <= 0)
+          ? 1.0
+          : math.min(1.0, math.min(availableW / imageW, innerH / imageH));
+      return CharacterCardMetrics(
+        cardWidth: s.cardWidth.toDouble(),
+        cardHeight: s.cardHeight.toDouble(),
+        photoWidth: imageW * scale,
+        photoHeight: imageH * scale,
+      );
+    case CharacterLayoutType.gallery:
+      if (showWhole) {
+        final idealW = math.max(s.cardWidth.toDouble(), imageW);
+        final renderW = maxWidth == null ? idealW : math.min(idealW, maxWidth);
+        return CharacterCardMetrics(
+          cardWidth: renderW,
+          cardHeight: math.max(
+            s.cardHeight.toDouble(),
+            imageH + galleryStrip,
+          ),
+          photoWidth: renderW - cardPadding,
+          photoHeight: imageH,
+        );
+      }
+      return CharacterCardMetrics(
+        cardWidth: s.cardWidth.toDouble(),
+        cardHeight: s.cardHeight.toDouble(),
+        photoWidth: s.cardWidth.toDouble(),
+        photoHeight: math.max(40.0, s.cardHeight - galleryStrip),
+      );
   }
 }
 
@@ -115,9 +224,15 @@ class CharacterLayout {
 
   static const defaultSettings = <CharacterLayoutType, CharacterLayoutSettings>{
     CharacterLayoutType.compact: CharacterLayoutSettings(),
-    CharacterLayoutType.portrait: CharacterLayoutSettings(cardHeight: 160),
+    CharacterLayoutType.portrait: CharacterLayoutSettings(
+      cardHeight: 160,
+      imageWidth: 150,
+      imageHeight: 148,
+    ),
     CharacterLayoutType.gallery: CharacterLayoutSettings(
       cardHeight: 220,
+      imageWidth: 380,
+      imageHeight: 188,
       wholeImage: false,
     ),
   };
@@ -172,6 +287,12 @@ class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
             .clamp(90, 360),
         fontSize: (prefs.getInt('charFont_${t.name}') ?? defaults.fontSize)
             .clamp(10, 22),
+        imageWidth:
+            (prefs.getInt('charImgW_${t.name}') ?? defaults.imageWidth)
+                .clamp(40, 800),
+        imageHeight:
+            (prefs.getInt('charImgH_${t.name}') ?? defaults.imageHeight)
+                .clamp(40, 800),
         wholeImage:
             prefs.getBool('charWhole_${t.name}') ?? defaults.wholeImage,
         lockAspect:
@@ -192,6 +313,8 @@ class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
         await prefs.setInt('charW_$name', s.cardWidth);
         await prefs.setInt('charH_$name', s.cardHeight);
         await prefs.setInt('charFont_$name', s.fontSize);
+        await prefs.setInt('charImgW_$name', s.imageWidth);
+        await prefs.setInt('charImgH_$name', s.imageHeight);
         await prefs.setBool('charWhole_$name', s.wholeImage);
         await prefs.setBool('charLock_$name', s.lockAspect);
       }
@@ -207,7 +330,7 @@ final characterLayoutProvider =
 );
 
 /// Opens the dialog that lets the user pick a card layout plus per-layout
-/// card size, font size and whole-image behavior.
+/// card size, font size, image size and whole-image behavior.
 Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
   final current = ref.read(characterLayoutProvider);
   var pendingType = current.type;
@@ -254,6 +377,10 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                       ),
                     ),
                     const Divider(height: 24),
+                    Text(
+                      'Card',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                     _layoutSlider(
                       context,
                       setState,
@@ -265,14 +392,8 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                       step: 20,
                       unit: 'px',
                       onChanged: (v) => setState(() {
-                        var next =
+                        pending[pendingType] =
                             pending[pendingType]!.copyWith(cardWidth: v);
-                        if (next.lockAspect) {
-                          next = next.copyWith(
-                            cardHeight: (v / aspect).round().clamp(90, 360),
-                          );
-                        }
-                        pending[pendingType] = next;
                       }),
                     ),
                     _layoutSlider(
@@ -286,14 +407,8 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                       step: 15,
                       unit: 'px',
                       onChanged: (v) => setState(() {
-                        var next =
+                        pending[pendingType] =
                             pending[pendingType]!.copyWith(cardHeight: v);
-                        if (next.lockAspect) {
-                          next = next.copyWith(
-                            cardWidth: (v * aspect).round().clamp(160, 800),
-                          );
-                        }
-                        pending[pendingType] = next;
                       }),
                     ),
                     _layoutSlider(
@@ -312,6 +427,55 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                       }),
                     ),
                     const Divider(height: 24),
+                    Text(
+                      'Image',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    _layoutSlider(
+                      context,
+                      setState,
+                      key: const ValueKey('imageWidthSlider'),
+                      label: 'Image width',
+                      value: s.imageWidth,
+                      min: 40,
+                      max: 800,
+                      step: 10,
+                      unit: 'px',
+                      onChanged: (v) => setState(() {
+                        var next =
+                            pending[pendingType]!.copyWith(imageWidth: v);
+                        if (next.lockAspect) {
+                          next = next.copyWith(
+                            imageHeight:
+                                (v / aspect).round().clamp(40, 800),
+                          );
+                        }
+                        pending[pendingType] = next;
+                      }),
+                    ),
+                    _layoutSlider(
+                      context,
+                      setState,
+                      key: const ValueKey('imageHeightSlider'),
+                      label: 'Image height',
+                      value: s.imageHeight,
+                      min: 40,
+                      max: 800,
+                      step: 10,
+                      unit: 'px',
+                      onChanged: (v) => setState(() {
+                        var next =
+                            pending[pendingType]!.copyWith(imageHeight: v);
+                        if (next.lockAspect) {
+                          next = next.copyWith(
+                            imageWidth:
+                                (v * aspect).round().clamp(40, 800),
+                          );
+                        }
+                        pending[pendingType] = next;
+                      }),
+                    ),
+                    const Divider(height: 24),
                     CheckboxListTile(
                       key: const ValueKey('wholeImageCheckbox'),
                       value: s.wholeImage,
@@ -324,7 +488,7 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                       controlAffinity: ListTileControlAffinity.leading,
                       title: const Text('Always show the whole image'),
                       subtitle: const Text(
-                        'Scale the photo to fit the card instead of cropping it',
+                        'Oversized photos grow the card so nothing is cropped',
                       ),
                     ),
                     CheckboxListTile(
@@ -343,7 +507,7 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                       controlAffinity: ListTileControlAffinity.leading,
                       title: const Text("Lock size to the photo's proportions"),
                       subtitle: const Text(
-                        'Changing width or height keeps the card shaped like the photo',
+                        'Changing image width or height keeps the exact photo proportions',
                       ),
                     ),
                   ],
