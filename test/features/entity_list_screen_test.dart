@@ -10,7 +10,7 @@ void main() {
   final haru = Character(
     id: 'char-haru',
     name: 'Haru',
-    notes: 'Swordfighter of the north.',
+    description: 'Swordfighter of the north.',
     createdAt: DateTime.utc(2024, 1, 1),
     updatedAt: DateTime.utc(2024, 1, 2),
   );
@@ -30,7 +30,7 @@ void main() {
 
     expect(find.text('Haru'), findsOneWidget);
     expect(find.textContaining('Swordfighter of the north.'), findsOneWidget);
-    expect(find.textContaining('Notes:'), findsOneWidget);
+    expect(find.textContaining('Description:'), findsOneWidget);
     expect(find.text('Crown of Ashes'), findsNothing);
 
     await unmountTestApp(tester);
@@ -82,8 +82,8 @@ void main() {
         profession: 'Swordfighter',
         age: '34',
         race: 'Human',
-        faction: 'Northern Alliance',
         description: 'A tall wanderer with a long and detailed backstory.',
+        tags: const ['wanderer'],
         createdAt: DateTime.utc(2024, 1, 1),
         updatedAt: DateTime.utc(2024, 1, 2),
       ),
@@ -99,7 +99,7 @@ void main() {
     expect(find.textContaining('Profession: Swordfighter'), findsOneWidget);
     expect(find.textContaining('Age: 34'), findsOneWidget);
     expect(find.textContaining('Race: Human'), findsOneWidget);
-    expect(find.textContaining('Faction: Northern Alliance'), findsOneWidget);
+    expect(find.textContaining('Tags: wanderer'), findsOneWidget);
     expect(
       find.textContaining('A tall wanderer with a long and detailed backstory.'),
       findsOneWidget,

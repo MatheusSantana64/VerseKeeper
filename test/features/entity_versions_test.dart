@@ -46,7 +46,7 @@ void main() {
     await unmountTestApp(tester);
   });
 
-  testWidgets('version form hints at inherited values from the base',
+  testWidgets('version form hints at inherited tags from the base',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -55,8 +55,6 @@ void main() {
     final haru = Character(
       id: 'char-haru',
       name: 'Haru',
-      personality: 'kind',
-      notes: 'base notes',
       tags: const ['sword'],
       createdAt: DateTime.utc(2024, 1, 1),
       updatedAt: DateTime.utc(2024, 1, 1),
@@ -77,8 +75,6 @@ void main() {
       find.text('Leave a field empty to inherit it from Haru.'),
       findsOneWidget,
     );
-    expect(find.textContaining('Inherits: kind'), findsOneWidget);
-    expect(find.textContaining('Inherits: base notes'), findsOneWidget);
     expect(find.textContaining('Inherits: sword'), findsOneWidget);
 
     await unmountTestApp(tester);
@@ -93,7 +89,7 @@ void main() {
     final haru = Character(
       id: 'char-haru',
       name: 'Haru',
-      personality: 'kind',
+      tags: const ['sword'],
       createdAt: DateTime.utc(2024, 1, 1),
       updatedAt: DateTime.utc(2024, 1, 1),
     );
@@ -120,7 +116,7 @@ void main() {
       find.text('Leave a field empty to inherit it from Haru.'),
       findsOneWidget,
     );
-    expect(find.textContaining('Inherits: kind'), findsOneWidget);
+    expect(find.textContaining('Inherits: sword'), findsOneWidget);
 
     await unmountTestApp(tester);
   });
@@ -130,8 +126,7 @@ void main() {
     final haru = Character(
       id: 'char-haru',
       name: 'Haru',
-      personality: 'kind',
-      notes: 'base notes',
+      tags: const ['sword'],
       createdAt: DateTime.utc(2024, 1, 1),
       updatedAt: DateTime.utc(2024, 1, 1),
     );
@@ -139,7 +134,7 @@ void main() {
       id: 'ver-princess',
       characterId: 'char-haru',
       name: 'Princess',
-      personality: 'noble',
+      tags: const ['noble'],
       createdAt: DateTime.utc(2024, 2, 1),
       updatedAt: DateTime.utc(2024, 2, 1),
     );
@@ -156,8 +151,7 @@ void main() {
 
     expect(find.text('Resolved snapshot'), findsOneWidget);
     expect(find.textContaining('Name: Princess'), findsOneWidget);
-    expect(find.textContaining('Personality: noble'), findsOneWidget);
-    expect(find.textContaining('Notes: base notes'), findsOneWidget);
+    expect(find.textContaining('Tags: noble'), findsOneWidget);
 
     await unmountTestApp(tester);
   });

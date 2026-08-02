@@ -141,6 +141,12 @@ class _CharacterListTile extends StatelessWidget {
       return names.join(', ');
     }
 
+    int relationshipCount() {
+      final value = json['relationships'];
+      if (value is! List) return 0;
+      return value.length;
+    }
+
     Widget row(String label, String? value, {int maxLines = 2}) {
       if (value == null || value.isEmpty) return const SizedBox.shrink();
       return Padding(
@@ -197,16 +203,13 @@ class _CharacterListTile extends StatelessWidget {
               row('Profession', stringField('profession')),
               row('Age', stringField('age')),
               row('Race', stringField('race')),
-              row('Faction', stringField('faction')),
-              row('Aliases', listField('aliases')),
               row('Universes', universeField()),
               row('Tags', listField('tags')),
               row('Description', stringField('description'), maxLines: 3),
-              row('Personality', stringField('personality')),
-              row('Appearance', stringField('appearance')),
-              row('Notes', stringField('notes')),
-              row('Speech style', stringField('speechStyle')),
-              row('AI prompt', stringField('aiPrompt')),
+              row(
+                'Relationships',
+                relationshipCount() > 0 ? '${relationshipCount()}' : null,
+              ),
             ],
           ),
         ),

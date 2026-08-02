@@ -51,7 +51,7 @@ class EntityDetailScreen extends ConsumerWidget {
                   tooltip: 'Edit',
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () =>
-                      context.push('/library/$type/${entity.value!.id}/edit'),
+                      context.push('/library/${type.name}/${entity.value!.id}/edit'),
                 ),
                 IconButton(
                   tooltip: 'Delete',
@@ -372,14 +372,6 @@ class _EntityDetailBody extends ConsumerWidget {
           final resolved = (value as Character).resolve(version);
           final rows = [
             'Name: ${resolved.name}',
-            if (resolved.personality != null)
-              'Personality: ${resolved.personality}',
-            if (resolved.appearance != null)
-              'Appearance: ${resolved.appearance}',
-            if (resolved.notes != null) 'Notes: ${resolved.notes}',
-            if (resolved.speechStyle != null)
-              'Speech style: ${resolved.speechStyle}',
-            if (resolved.aiPrompt != null) 'AI prompt: ${resolved.aiPrompt}',
             if (resolved.tags.isNotEmpty) 'Tags: ${resolved.tags.join(', ')}',
             if (resolved.relationships.isNotEmpty)
               'Relationships: ${resolved.relationships.length}',

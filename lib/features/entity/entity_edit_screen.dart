@@ -317,19 +317,9 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
         .watch(entityDetailProvider((type: EntityType.character, id: characterId)));
     final json = base.value?.toJson();
     if (json == null) return const {};
-    String? stringField(String key) {
-      final value = json[key];
-      if (value is String && value.trim().isNotEmpty) return value;
-      return null;
-    }
 
     final tags = json['tags'];
     return {
-      'personality': ?stringField('personality'),
-      'appearance': ?stringField('appearance'),
-      'notes': ?stringField('notes'),
-      'speechStyle': ?stringField('speechStyle'),
-      'aiPrompt': ?stringField('aiPrompt'),
       if (tags is List && tags.isNotEmpty) 'tags': tags.join(', '),
     };
   }
