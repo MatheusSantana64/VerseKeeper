@@ -91,7 +91,7 @@ class _RecentTile extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () =>
-          context.go('/library/${entity.entityType.name}/${entity.id}'),
+          context.push('/library/${entity.entityType.name}/${entity.id}'),
     );
   }
 }
@@ -138,7 +138,7 @@ class _EntityCountCard extends StatelessWidget {
       child: Card(
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.go('/library/${type.name}'),
+          onTap: () => context.push('/library/${type.name}'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

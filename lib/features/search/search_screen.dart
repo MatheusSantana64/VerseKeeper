@@ -184,7 +184,7 @@ class _ResultTile extends StatelessWidget {
         style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
       ),
       onTap: () =>
-          context.go('/library/${entity.entityType.name}/${entity.id}'),
+          context.push('/library/${entity.entityType.name}/${entity.id}'),
     );
   }
 }

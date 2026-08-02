@@ -25,7 +25,12 @@ class RelationshipGraphScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final characters = ref.watch(entityListProvider(EntityType.character));
     return Scaffold(
-      appBar: AppBar(title: const Text('Relationship graph')),
+      appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
+        title: const Text('Relationship graph'),
+      ),
       drawer: const AppDrawer(),
       body: characters.when(
         data: (list) => list.isEmpty
@@ -94,7 +99,7 @@ class _GraphView extends ConsumerWidget {
               _PositionedNode(
                 node: node,
                 position: positions[node.id]!,
-                onTap: () => context.go('/library/character/${node.id}'),
+                onTap: () => context.push('/library/character/${node.id}'),
               ),
           ],
         );

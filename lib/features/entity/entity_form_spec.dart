@@ -63,11 +63,17 @@ class FormFieldSpec {
 const Map<EntityType, List<FormFieldSpec>> entityFormSpecs = {
   EntityType.character: [
     FormFieldSpec(key: 'name', label: 'Name', kind: FormFieldKind.text, required: true),
+    FormFieldSpec(key: 'aliases', label: 'Aliases', kind: FormFieldKind.tags),
     FormFieldSpec(key: 'profession', label: 'Profession', kind: FormFieldKind.text),
     FormFieldSpec(key: 'age', label: 'Age', kind: FormFieldKind.text),
     FormFieldSpec(key: 'race', label: 'Race', kind: FormFieldKind.text),
     FormFieldSpec(key: 'faction', label: 'Faction', kind: FormFieldKind.text),
     FormFieldSpec(key: 'description', label: 'Description', kind: FormFieldKind.multiline),
+    FormFieldSpec(key: 'personality', label: 'Personality', kind: FormFieldKind.multiline),
+    FormFieldSpec(key: 'appearance', label: 'Appearance', kind: FormFieldKind.multiline),
+    FormFieldSpec(key: 'notes', label: 'Notes', kind: FormFieldKind.multiline),
+    FormFieldSpec(key: 'speechStyle', label: 'Speech style', kind: FormFieldKind.text),
+    FormFieldSpec(key: 'aiPrompt', label: 'AI prompt', kind: FormFieldKind.multiline),
     FormFieldSpec(key: 'tags', label: 'Tags', kind: FormFieldKind.tags),
     FormFieldSpec(
       key: 'universeIds',

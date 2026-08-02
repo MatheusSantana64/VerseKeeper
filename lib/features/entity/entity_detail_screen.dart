@@ -30,6 +30,9 @@ class EntityDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
         title: Text(entity.value == null
             ? config.singular
             : displayNameOf(entity.value!)),
@@ -40,13 +43,14 @@ class EntityDetailScreen extends ConsumerWidget {
                   IconButton(
                     tooltip: 'Manage character fields',
                     icon: const Icon(Icons.playlist_add),
-                    onPressed: () =>
-                        context.go('/library/${EntityType.fieldDefinition.name}'),
+                    onPressed: () => context
+                        .push('/library/${EntityType.fieldDefinition.name}'),
                   ),
                 IconButton(
                   tooltip: 'Edit',
                   icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.go('/library/$type/${entity.value!.id}/edit'),
+                  onPressed: () =>
+                      context.push('/library/$type/${entity.value!.id}/edit'),
                 ),
                 IconButton(
                   tooltip: 'Delete',
@@ -96,7 +100,12 @@ class EntityDetailScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
     await deleteEntity(ref, type, id);
-    if (context.mounted) context.go('/library/${type.name}');
+    if (!context.mounted) return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/library/${type.name}');
+    }
   }
 }
 
@@ -280,7 +289,7 @@ class _EntityDetailBody extends ConsumerWidget {
           Text('Versions', style: theme.textTheme.titleSmall),
           const Spacer(),
           TextButton.icon(
-            onPressed: () => context.go(
+            onPressed: () => context.push(
               '/library/${EntityType.characterVersion.name}/new'
               '?characterId=${entity.id}',
             ),
@@ -306,7 +315,7 @@ class _EntityDetailBody extends ConsumerWidget {
             subtitle: _versionSubtitle(version, universeById),
             trailing: const Icon(Icons.chevron_right),
             onTap: () =>
-                context.go('/library/characterVersion/${version.id}'),
+                context.push('/library/characterVersion/${version.id}'),
           ),
     ];
   }
@@ -342,7 +351,7 @@ class _EntityDetailBody extends ConsumerWidget {
                 title: Text('Base character: ${displayNameOf(value)}'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () =>
-                    context.go('/library/character/${value.id}'),
+                    context.push('/library/character/${value.id}'),
               ),
         loading: () => const LinearProgressIndicator(),
         error: (error, _) => Text('Could not load base character: $error'),
@@ -405,7 +414,7 @@ class _EntityDetailBody extends ConsumerWidget {
           leading: Icon(configOf(EntityType.story).icon),
           title: Text(displayNameOf(story)),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.go('/library/story/${story.id}'),
+          onTap: () => context.push('/library/story/${story.id}'),
         ),
     ];
   }
@@ -486,10 +495,10 @@ class _EntityDetailBody extends ConsumerWidget {
         subtitle: subtitleLines.isEmpty ? null : Text(subtitleLines.join('\n')),
         trailing: const Icon(Icons.chevron_right),
         onTap: character != null
-            ? () => context.go('/library/character/${character.id}')
+            ? () => context.push('/library/character/${character.id}')
             : version != null
                 ? () =>
-                    context.go('/library/characterVersion/${version.id}')
+                    context.push('/library/characterVersion/${version.id}')
                 : null,
       ));
     }
@@ -602,7 +611,7 @@ class _RelationshipDetailTile extends StatelessWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: target == null
           ? null
-          : () => context.go('/library/character/${target.id}'),
+          : () => context.push('/library/character/${target.id}'),
     );
   }
 }

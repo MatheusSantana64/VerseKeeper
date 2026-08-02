@@ -183,7 +183,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
     final entity = entityFromJson(widget.type, json);
     await saveEntity(ref, entity);
     if (!mounted) return;
-    context.go('/library/${widget.type.name}/${entity.id}');
+    context.pushReplacement('/library/${widget.type.name}/${entity.id}');
   }
 
   @override
@@ -200,12 +200,22 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
       data: (value) =>
           _buildForm(context, config, existing: value?.toJson()),
       loading: () => Scaffold(
-        appBar: AppBar(title: Text('Edit ${config.singular}')),
+        appBar: AppBar(
+          leading: context.canPop()
+              ? BackButton(onPressed: () => context.pop())
+              : null,
+          title: Text('Edit ${config.singular}'),
+        ),
         drawer: const AppDrawer(),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
-        appBar: AppBar(title: Text('Edit ${config.singular}')),
+        appBar: AppBar(
+          leading: context.canPop()
+              ? BackButton(onPressed: () => context.pop())
+              : null,
+          title: Text('Edit ${config.singular}'),
+        ),
         drawer: const AppDrawer(),
         body: Center(child: Text('Could not load: $error')),
       ),
@@ -235,7 +245,12 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
+        title: Text(title),
+      ),
       drawer: const AppDrawer(),
       body: SafeArea(
         child: Column(
@@ -449,7 +464,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => context.go(
+                    onPressed: () => context.push(
                       '/library/${EntityType.fieldDefinition.name}',
                     ),
                     icon: const Icon(Icons.playlist_add, size: 18),
@@ -472,7 +487,7 @@ class _EntityEditScreenState extends ConsumerState<EntityEditScreen> {
                 ),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () => context.go(
+                  onPressed: () => context.push(
                     '/library/${EntityType.fieldDefinition.name}',
                   ),
                   icon: const Icon(Icons.playlist_add, size: 18),
