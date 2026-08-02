@@ -343,7 +343,6 @@ Widget _layoutSlider(
   required String unit,
   required ValueChanged<int> onChanged,
 }) {
-  final divisions = ((max - min) / step).round();
   return Row(
     children: [
       Expanded(
@@ -351,19 +350,110 @@ Widget _layoutSlider(
       ),
       SizedBox(
         width: 200,
-        child: Slider(
+        child: _SteppedSlider(
           key: key,
           value: value.toDouble(),
           min: min.toDouble(),
           max: max.toDouble(),
-          divisions: divisions,
-          label: '$value$unit',
-          onChanged: (v) {
-            final rounded = v.round();
-            setState(() => onChanged(rounded));
-          },
+          step: step.toDouble(),
+          onChanged: (v) => setState(() => onChanged(v.round())),
         ),
       ),
     ],
   );
+}
+
+/// Draggable, stepped slider without Material's `Slider` (which always wraps
+/// its value indicator in an `OverlayPortal`; on Windows that serializes an
+/// orphan semantics node inside a pushed route and floods the log with
+/// `Failed to update ui::AXTree` — see flutter/flutter#190357). Pure visual
+/// + gesture control, so it also keeps the semantics tree quiet during drags.
+///
+/// LayoutBuilder-free: `AlertDialog` queries intrinsic dimensions of its
+/// content, which a `LayoutBuilder` cannot answer. Positioning uses
+/// [Align]/[FractionallySizedBox] with fraction-relative alignment, so no
+/// absolute width is needed.
+class _SteppedSlider extends StatelessWidget {
+  const _SteppedSlider({
+    super.key,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.step,
+    required this.onChanged,
+  });
+
+  final double value;
+  final double min;
+  final double max;
+  final double step;
+  final ValueChanged<double> onChanged;
+
+  void _updateFromX(BuildContext context, double x) {
+    final width = context.size?.width ?? 1.0;
+    if (width <= 0) return;
+    final ratio = (x / width).clamp(0.0, 1.0);
+    final raw = min + ratio * (max - min);
+    final stepped = ((raw / step).round() * step).clamp(min, max);
+    onChanged(stepped);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final progress = ((value - min) / (max - min)).clamp(0.0, 1.0);
+    const thumbSize = 16.0;
+    return SizedBox(
+      width: double.infinity,
+      height: 32,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (d) => _updateFromX(context, d.localPosition.dx),
+        onHorizontalDragUpdate: (d) =>
+            _updateFromX(context, d.localPosition.dx),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Container(
+              height: 6,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: progress,
+                heightFactor: 1,
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment(progress * 2 - 1, 0),
+              child: Container(
+                width: thumbSize,
+                height: thumbSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary,
+                  border: Border.all(
+                    color: theme.colorScheme.onPrimary,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
