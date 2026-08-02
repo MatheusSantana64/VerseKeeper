@@ -116,46 +116,38 @@ class _CharacterBody extends StatelessWidget {
     const gap = 8.0;
     const sidePadding = 12.0;
     final settings = layout.current;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final metrics = characterCardMetrics(
-          settings,
-          layout.type,
-          maxWidth: constraints.maxWidth - sidePadding * 2 - gap,
-        );
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(sidePadding, 8, sidePadding, 88),
-          child: Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            children: [
-              for (var i = 0; i < list.length; i++)
-                SizedBox(
-                  key: ValueKey('characterCard_$i'),
-                  width: metrics.cardWidth,
-                  height: metrics.cardHeight,
-                  child: switch (layout.type) {
-                    CharacterLayoutType.compact => _CompactCharacterCard(
-                        entity: list[i],
-                        settings: settings,
-                        metrics: metrics,
-                      ),
-                    CharacterLayoutType.portrait => _PortraitCharacterCard(
-                        entity: list[i],
-                        settings: settings,
-                        metrics: metrics,
-                      ),
-                    CharacterLayoutType.gallery => _GalleryCharacterCard(
-                        entity: list[i],
-                        settings: settings,
-                        metrics: metrics,
-                      ),
-                  },
-                ),
-            ],
-          ),
-        );
-      },
+    final metrics = characterCardMetrics(settings, layout.type);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(sidePadding, 8, sidePadding, 88),
+      child: Wrap(
+        spacing: gap,
+        runSpacing: gap,
+        children: [
+          for (var i = 0; i < list.length; i++)
+            SizedBox(
+              key: ValueKey('characterCard_$i'),
+              width: metrics.cardWidth,
+              height: metrics.cardHeight,
+              child: switch (layout.type) {
+                CharacterLayoutType.compact => _CompactCharacterCard(
+                    entity: list[i],
+                    settings: settings,
+                    metrics: metrics,
+                  ),
+                CharacterLayoutType.portrait => _PortraitCharacterCard(
+                    entity: list[i],
+                    settings: settings,
+                    metrics: metrics,
+                  ),
+                CharacterLayoutType.gallery => _GalleryCharacterCard(
+                    entity: list[i],
+                    settings: settings,
+                    metrics: metrics,
+                  ),
+              },
+            ),
+        ],
+      ),
     );
   }
 }
@@ -217,9 +209,7 @@ class _CompactCharacterCard extends StatelessWidget {
                 child: CoverImage(
                   imageId: json['coverImageId'] as String?,
                   fill: true,
-                  fillFit: settings.showWholeImage
-                      ? BoxFit.contain
-                      : BoxFit.cover,
+                  fillFit: BoxFit.contain,
                   borderRadius: 8,
                   icon: config.icon,
                 ),
@@ -287,6 +277,7 @@ class _PortraitCharacterCard extends StatelessWidget {
     final name = displayNameOf(entity);
     final age = _stringField(json, 'age');
     final profession = _stringField(json, 'profession');
+    final description = _stringField(json, 'description');
 
     final titleStyle =
         theme.textTheme.titleMedium?.copyWith(fontSize: settings.fontSize + 2.0);
@@ -312,9 +303,7 @@ class _PortraitCharacterCard extends StatelessWidget {
                 child: CoverImage(
                   imageId: json['coverImageId'] as String?,
                   fill: true,
-                  fillFit: settings.showWholeImage
-                      ? BoxFit.contain
-                      : BoxFit.cover,
+                  fillFit: BoxFit.contain,
                   borderRadius: 8,
                   icon: config.icon,
                 ),
@@ -337,7 +326,21 @@ class _PortraitCharacterCard extends StatelessWidget {
                     ],
                     if (profession != null) ...[
                       const SizedBox(height: 2),
-                      Text(profession, style: bodyStyle),
+                      Text(
+                        profession,
+                        style: bodyStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: bodyStyle,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ],
                 ),
@@ -387,9 +390,7 @@ class _GalleryCharacterCard extends StatelessWidget {
               child: CoverImage(
                 imageId: json['coverImageId'] as String?,
                 fill: true,
-                fillFit: settings.showWholeImage
-                    ? BoxFit.contain
-                    : BoxFit.cover,
+                fillFit: BoxFit.contain,
                 borderRadius: 0,
                 icon: config.icon,
               ),
