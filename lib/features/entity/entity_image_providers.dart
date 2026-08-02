@@ -18,7 +18,8 @@ final coverImagePickerProvider =
 ///
 /// Defaults to a fixed [size] square (image cropped to fill it). Pass
 /// [fixedHeight] instead to show the whole photo: the width then follows the
-/// image's aspect ratio and nothing is cropped.
+/// image's aspect ratio and nothing is cropped. Pass [fill] to expand to the
+/// available box (width and height are `double.infinity`, cropped to fill).
 ///
 /// When a photo is set and [viewEnabled] is true, tapping the image opens a
 /// fullscreen preview that supports pinch-to-zoom and panning.
@@ -28,6 +29,7 @@ class CoverImage extends ConsumerWidget {
     required this.imageId,
     this.size = 56,
     this.fixedHeight,
+    this.fill = false,
     this.borderRadius = 8,
     this.icon = Icons.person_outline,
     this.viewEnabled = true,
@@ -36,6 +38,7 @@ class CoverImage extends ConsumerWidget {
   final String? imageId;
   final double size;
   final double? fixedHeight;
+  final bool fill;
   final double borderRadius;
   final IconData icon;
   final bool viewEnabled;
@@ -46,8 +49,8 @@ class CoverImage extends ConsumerWidget {
     final height = fixedHeight ?? size;
 
     Widget placeholder() => Container(
-          width: fixedHeight == null ? size : height * 1.5,
-          height: height,
+          width: fill ? double.infinity : (fixedHeight == null ? size : height * 1.5),
+          height: fill ? double.infinity : height,
           decoration: BoxDecoration(
             color: theme.colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(borderRadius),
@@ -61,13 +64,13 @@ class CoverImage extends ConsumerWidget {
       builder: (context, snapshot) {
         final path = snapshot.data;
         if (path == null) return placeholder();
-        final image = ClipRRect(
+        final Widget image = ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
           child: Image.file(
             File(path),
-            width: fixedHeight == null ? size : null,
-            height: height,
-            fit: fixedHeight == null ? BoxFit.cover : BoxFit.contain,
+            width: fill ? double.infinity : (fixedHeight == null ? size : null),
+            height: fill ? double.infinity : height,
+            fit: fill ? BoxFit.cover : (fixedHeight == null ? BoxFit.cover : BoxFit.contain),
             errorBuilder: (_, _, _) => placeholder(),
           ),
         );

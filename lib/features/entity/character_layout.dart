@@ -34,18 +34,33 @@ extension CharacterLayoutTypeLabel on CharacterLayoutType {
 class CharacterLayout {
   const CharacterLayout({
     this.type = CharacterLayoutType.compact,
-    this.columns = 1,
+    this.cardWidth = 380,
+    this.cardHeight = 120,
+    this.fontSize = 14,
   });
 
   final CharacterLayoutType type;
 
-  /// How many cards fit in one row, from 1 up to 5.
-  final int columns;
+  /// Card width in logical pixels.
+  final int cardWidth;
 
-  CharacterLayout copyWith({CharacterLayoutType? type, int? columns}) {
+  /// Card height in logical pixels.
+  final int cardHeight;
+
+  /// Base text size for card content.
+  final int fontSize;
+
+  CharacterLayout copyWith({
+    CharacterLayoutType? type,
+    int? cardWidth,
+    int? cardHeight,
+    int? fontSize,
+  }) {
     return CharacterLayout(
       type: type ?? this.type,
-      columns: columns ?? this.columns,
+      cardWidth: cardWidth ?? this.cardWidth,
+      cardHeight: cardHeight ?? this.cardHeight,
+      fontSize: fontSize ?? this.fontSize,
     );
   }
 }
@@ -64,7 +79,9 @@ class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
         (t) => t.name == prefs.getString('charLayoutType'),
         orElse: () => CharacterLayoutType.compact,
       ),
-      columns: (prefs.getInt('charLayoutColumns') ?? 1).clamp(1, 5),
+      cardWidth: (prefs.getInt('charCardWidth') ?? 380).clamp(160, 800),
+      cardHeight: (prefs.getInt('charCardHeight') ?? 120).clamp(90, 360),
+      fontSize: (prefs.getInt('charFontSize') ?? 14).clamp(10, 22),
     );
   }
 
@@ -73,7 +90,9 @@ class CharacterLayoutNotifier extends Notifier<CharacterLayout> {
     try {
       final prefs = await ref.read(sharedPreferencesProvider.future);
       await prefs.setString('charLayoutType', layout.type.name);
-      await prefs.setInt('charLayoutColumns', layout.columns);
+      await prefs.setInt('charCardWidth', layout.cardWidth);
+      await prefs.setInt('charCardHeight', layout.cardHeight);
+      await prefs.setInt('charFontSize', layout.fontSize);
     } catch (_) {
       // Persistence unavailable (e.g. widget tests): keep the in-memory value.
     }
@@ -85,11 +104,14 @@ final characterLayoutProvider =
   CharacterLayoutNotifier.new,
 );
 
-/// Opens the dialog that lets the user pick a card layout and cards-per-line.
+/// Opens the dialog that lets the user pick a card layout, card size and font
+/// size.
 Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
   final current = ref.read(characterLayoutProvider);
   var pendingType = current.type;
-  var pendingColumns = current.columns;
+  var pendingWidth = current.cardWidth;
+  var pendingHeight = current.cardHeight;
+  var pendingFontSize = current.fontSize;
 
   return showDialog<void>(
     context: context,
@@ -125,24 +147,41 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
                 ),
               ),
               const Divider(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text('Cards per line: $pendingColumns'),
-                  ),
-                  SizedBox(
-                    width: 200,
-                    child: Slider(
-                      value: pendingColumns.toDouble(),
-                      min: 1,
-                      max: 5,
-                      divisions: 4,
-                      label: '$pendingColumns',
-                      onChanged: (value) =>
-                          setState(() => pendingColumns = value.round()),
-                    ),
-                  ),
-                ],
+              _layoutSlider(
+                context,
+                setState,
+                key: const ValueKey('cardWidthSlider'),
+                label: 'Card width',
+                value: pendingWidth,
+                min: 160,
+                max: 800,
+                step: 20,
+                unit: 'px',
+                onChanged: (v) => pendingWidth = v,
+              ),
+              _layoutSlider(
+                context,
+                setState,
+                key: const ValueKey('cardHeightSlider'),
+                label: 'Card height',
+                value: pendingHeight,
+                min: 90,
+                max: 360,
+                step: 15,
+                unit: 'px',
+                onChanged: (v) => pendingHeight = v,
+              ),
+              _layoutSlider(
+                context,
+                setState,
+                key: const ValueKey('fontSizeSlider'),
+                label: 'Font size',
+                value: pendingFontSize,
+                min: 10,
+                max: 22,
+                step: 1,
+                unit: 'pt',
+                onChanged: (v) => pendingFontSize = v,
               ),
             ],
           ),
@@ -157,7 +196,9 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
               ref.read(characterLayoutProvider.notifier).setLayout(
                     CharacterLayout(
                       type: pendingType,
-                      columns: pendingColumns,
+                      cardWidth: pendingWidth,
+                      cardHeight: pendingHeight,
+                      fontSize: pendingFontSize,
                     ),
                   );
               Navigator.of(context).pop();
@@ -167,5 +208,42 @@ Future<void> showCharacterLayoutDialog(BuildContext context, WidgetRef ref) {
         ],
       ),
     ),
+  );
+}
+
+Widget _layoutSlider(
+  BuildContext context,
+  StateSetter setState, {
+  required Key key,
+  required String label,
+  required int value,
+  required int min,
+  required int max,
+  required int step,
+  required String unit,
+  required ValueChanged<int> onChanged,
+}) {
+  final divisions = ((max - min) / step).round();
+  return Row(
+    children: [
+      Expanded(
+        child: Text('$label: $value$unit'),
+      ),
+      SizedBox(
+        width: 200,
+        child: Slider(
+          key: key,
+          value: value.toDouble(),
+          min: min.toDouble(),
+          max: max.toDouble(),
+          divisions: divisions,
+          label: '$value$unit',
+          onChanged: (v) {
+            final rounded = v.round();
+            setState(() => onChanged(rounded));
+          },
+        ),
+      ),
+    ],
   );
 }

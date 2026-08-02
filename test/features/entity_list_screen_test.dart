@@ -118,7 +118,8 @@ void main() {
     await unmountTestApp(tester);
   });
 
-  testWidgets('default layout is a compact single-column list', (tester) async {
+  testWidgets('default layout uses compact cards at the default size',
+      (tester) async {
     final database = await seededDatabase([haru, crown]);
     addTearDown(database.close);
 
@@ -127,12 +128,10 @@ void main() {
 
     expect(find.byKey(const ValueKey('compactCharacterCard')), findsOneWidget);
     expect(find.byKey(const ValueKey('galleryCharacterCard')), findsNothing);
-    expect(
-      tester
-          .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')))
-          .width,
-      closeTo(800 - 32, 0.1),
-    );
+    final card =
+        tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(380, 0.1));
+    expect(card.height, closeTo(120, 0.1));
 
     await unmountTestApp(tester);
   });
@@ -164,7 +163,7 @@ void main() {
     await unmountTestApp(tester);
   });
 
-  testWidgets('cards-per-line changes the card width', (tester) async {
+  testWidgets('size and font sliders change the cards', (tester) async {
     final database = await seededDatabase([haru, crown]);
     addTearDown(database.close);
 
@@ -174,20 +173,31 @@ void main() {
     await tester.tap(find.byTooltip('Layout'));
     await tester.pumpAndSettle();
 
-    // Drag the slider to the far right (5 cards per line).
-    await tester.drag(find.byType(Slider), const Offset(400, 0));
+    // Drag each slider to the far right (max values).
+    await tester.drag(
+      find.byKey(const ValueKey('cardWidthSlider')),
+      const Offset(400, 0),
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('cardHeightSlider')),
+      const Offset(400, 0),
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('fontSizeSlider')),
+      const Offset(400, 0),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
     await tester.pumpAndSettle();
 
-    final expectedWidth = (800 - 32 - 12 * 4) / 5;
-    expect(
-      tester
-          .widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')))
-          .width,
-      closeTo(expectedWidth, 0.1),
-    );
+    final card =
+        tester.widget<SizedBox>(find.byKey(const ValueKey('characterCard_0')));
+    expect(card.width, closeTo(800, 0.1));
+    expect(card.height, closeTo(360, 0.1));
+
+    final title = tester.widget<Text>(find.text('Haru'));
+    expect(title.style?.fontSize, closeTo(24, 0.1));
 
     await unmountTestApp(tester);
   });
